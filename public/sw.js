@@ -1,5 +1,5 @@
 // Service worker: מטמון לעבודה ללא רשת ופתיחת הארוחה הנכונה מלחיצה על התראה.
-const CACHE = 'ma-ochlim-v2'
+const CACHE = 'ma-ochlim-v3'
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon.svg'])))
   self.skipWaiting()
