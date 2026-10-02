@@ -1,0 +1,101 @@
+import type { Recipe } from '../types'
+
+// ארוחות ביתיות, אוכל בחוץ וגיבויים לפי העדפות ליאב (נספח א ופרק 13).
+// כמויות הבסיס מכוונות לחלוקה 700 / 1,000 / 800; המנוע מכפיל רק במכפילים מעשיים.
+
+export const RECIPES: Recipe[] = [
+  // בבית: בוקר
+  { id: 'toast_eggs', name: 'טוסט וביצים', kind: 'home', effort: '15', totalMinutes: 12, activeMinutes: 10, slots: ['morning', 'evening'],
+    items: [{ foodId: 'bread', grams: 112 }, { foodId: 'mozzarella', grams: 50 }, { foodId: 'egg', grams: 100 }, { foodId: 'olive_oil', grams: 5 }, { foodId: 'cucumber', grams: 100 }] },
+  { id: 'yogurt_granola', name: 'יוגורט, גרנולה ובננה', kind: 'home', effort: 'none', totalMinutes: 3, activeMinutes: 3, slots: ['morning', 'evening'],
+    items: [{ foodId: 'yogurt', grams: 200 }, { foodId: 'granola', grams: 80 }, { foodId: 'banana', grams: 118 }, { foodId: 'honey', grams: 15 }] },
+  { id: 'pita_cheese_veg', name: 'פיתה עם גבינה וירקות', kind: 'home', effort: '5', totalMinutes: 5, activeMinutes: 5, slots: ['morning', 'evening'],
+    items: [{ foodId: 'pita', grams: 90 }, { foodId: 'cottage', grams: 125 }, { foodId: 'bulgarian', grams: 50 }, { foodId: 'tomato', grams: 100 }, { foodId: 'cucumber', grams: 100 }, { foodId: 'olive_oil', grams: 10 }, { foodId: 'bread', grams: 56 }] },
+  { id: 'cornflakes_milk', name: 'קורנפלקס וחלב עם בננה ואגוזים', kind: 'home', effort: 'none', totalMinutes: 2, activeMinutes: 2, slots: ['morning'],
+    items: [{ foodId: 'cornflakes', grams: 80 }, { foodId: 'milk', grams: 300 }, { foodId: 'banana', grams: 118 }, { foodId: 'nuts', grams: 30 }] },
+  { id: 'egg_sandwich', name: 'כריך ביצים', kind: 'home', effort: '15', totalMinutes: 12, activeMinutes: 8, slots: ['morning', 'evening'],
+    items: [{ foodId: 'bread', grams: 112 }, { foodId: 'egg', grams: 150 }, { foodId: 'mayo', grams: 14 }, { foodId: 'tomato', grams: 80 }, { foodId: 'olive_oil', grams: 5 }] },
+  { id: 'egg_avocado_sandwich', name: 'כריך ביצים ואבוקדו', kind: 'home', effort: '15', totalMinutes: 12, activeMinutes: 8, slots: ['morning', 'evening'],
+    items: [{ foodId: 'bread', grams: 112 }, { foodId: 'egg', grams: 100 }, { foodId: 'avocado', grams: 100 }, { foodId: 'tomato', grams: 80 }, { foodId: 'olive_oil', grams: 5 }] },
+  { id: 'bagel_cream', name: 'בייגל עם גבינת שמנת וביצה', kind: 'home', effort: '15', totalMinutes: 12, activeMinutes: 8, slots: ['morning'],
+    items: [{ foodId: 'bagel', grams: 100 }, { foodId: 'cream_cheese', grams: 40 }, { foodId: 'egg', grams: 100 }, { foodId: 'cucumber', grams: 100 }, { foodId: 'choco_drink', grams: 250 }] },
+
+  // בבית: ערב
+  { id: 'pasta_tomato', name: 'פסטה ברוטב עגבניות', kind: 'home', effort: '15', totalMinutes: 18, activeMinutes: 8, slots: ['evening'],
+    items: [{ foodId: 'pasta_dry', grams: 140 }, { foodId: 'tomato_sauce', grams: 150 }, { foodId: 'mozzarella', grams: 40 }, { foodId: 'olive_oil', grams: 10 }] },
+  { id: 'rice_schnitzel', name: 'אורז ושניצל מוכן', kind: 'home', effort: '30', totalMinutes: 25, activeMinutes: 8, slots: ['evening'],
+    note: 'אורז 85 ג׳ יבש נותן כ־250 ג׳ מבושל.',
+    items: [{ foodId: 'rice_cooked', grams: 250 }, { foodId: 'schnitzel_ready', grams: 180 }, { foodId: 'cucumber', grams: 100 }, { foodId: 'tomato', grams: 60 }, { foodId: 'olive_oil', grams: 5 }] },
+  { id: 'ravioli_sauce', name: 'רביולי ברוטב', kind: 'home', effort: 'heat', totalMinutes: 10, activeMinutes: 3, slots: ['evening'], backup: true,
+    items: [{ foodId: 'ravioli', grams: 250 }, { foodId: 'tomato_sauce', grams: 150 }] },
+  { id: 'hummus_egg_pita', name: 'פיתה עם חומוס וביצה', kind: 'home', effort: '5', totalMinutes: 5, activeMinutes: 5, slots: ['evening', 'morning'], backup: true,
+    note: 'גיבוי זמין רק כשיש ביצה קשה מוכנה; אחרת כ־12 דקות.',
+    items: [{ foodId: 'pita', grams: 180 }, { foodId: 'hummus', grams: 80 }, { foodId: 'egg', grams: 100 }, { foodId: 'tomato', grams: 80 }] },
+  { id: 'chicken_rice', name: 'פרגית ואורז עם פלפלים', kind: 'home', effort: '30', totalMinutes: 30, activeMinutes: 15, slots: ['evening'],
+    items: [{ foodId: 'chicken_thigh', grams: 180 }, { foodId: 'rice_cooked', grams: 250 }, { foodId: 'pepper', grams: 100 }, { foodId: 'olive_oil', grams: 10 }] },
+  { id: 'salmon_rice', name: 'סלמון ואורז', kind: 'home', effort: '30', totalMinutes: 25, activeMinutes: 8, slots: ['evening'],
+    items: [{ foodId: 'salmon', grams: 150 }, { foodId: 'rice_cooked', grams: 250 }, { foodId: 'olive_oil', grams: 10 }, { foodId: 'salad', grams: 150 }] },
+  { id: 'nuggets_potato', name: 'שניצלונים ותפוחי אדמה', kind: 'home', effort: '30', totalMinutes: 30, activeMinutes: 5, slots: ['evening'],
+    items: [{ foodId: 'nuggets', grams: 180 }, { foodId: 'potato_baked', grams: 250 }, { foodId: 'olive_oil', grams: 5 }, { foodId: 'cucumber', grams: 100 }] },
+  { id: 'burger_home', name: 'המבורגר ביתי בלחמנייה', kind: 'home', effort: '30', totalMinutes: 20, activeMinutes: 15, slots: ['evening'],
+    items: [{ foodId: 'beef_ground', grams: 150 }, { foodId: 'bun', grams: 70 }, { foodId: 'potato_baked', grams: 200 }, { foodId: 'tomato', grams: 60 }, { foodId: 'olive_oil', grams: 5 }] },
+
+  // גיבויים (פרק 13)
+  { id: 'cheese_toast', name: 'טוסט גבינה', kind: 'home', effort: '5', totalMinutes: 6, activeMinutes: 3, slots: ['morning', 'evening'], backup: true,
+    items: [{ foodId: 'bread', grams: 112 }, { foodId: 'mozzarella', grams: 80 }, { foodId: 'tomato', grams: 60 }] },
+  { id: 'yogurt_banana_nuts', name: 'יוגורט עם בננה ואגוזים', kind: 'home', effort: 'none', totalMinutes: 2, activeMinutes: 2, slots: ['morning', 'evening'], backup: true,
+    items: [{ foodId: 'yogurt', grams: 400 }, { foodId: 'banana', grams: 118 }, { foodId: 'nuts', grams: 40 }, { foodId: 'honey', grams: 15 }] },
+  { id: 'schnitzel_pita', name: 'שניצל מוכן בפיתה', kind: 'home', effort: 'heat', totalMinutes: 10, activeMinutes: 3, slots: ['evening', 'morning'], backup: true,
+    items: [{ foodId: 'pita', grams: 90 }, { foodId: 'schnitzel_ready', grams: 150 }, { foodId: 'hummus', grams: 40 }, { foodId: 'tomato', grams: 60 }] },
+  { id: 'pb_shake', name: 'שייק חלב, בננה וחמאת בוטנים', kind: 'home', effort: '5', totalMinutes: 4, activeMinutes: 4, slots: ['morning'], backup: true,
+    note: 'שייק לבד אינו בהכרח ארוחה מלאה; אפשר לצרף פרוסה עם ממרח.',
+    items: [{ foodId: 'milk', grams: 300 }, { foodId: 'banana', grams: 118 }, { foodId: 'peanut_butter', grams: 32 }, { foodId: 'frozen_fruit', grams: 100 }, { foodId: 'dates', grams: 48 }] },
+
+  // אוכל בחוץ (פרק 12). כל הנתונים אומדן לפי רכיבים, לא נתון של סניף מסוים.
+  { id: 'out_pargit', name: 'פיתה פרגית', kind: 'outside', effort: 'none', totalMinutes: 0, activeMinutes: 0, slots: ['outside'],
+    items: [{ foodId: 'pita', grams: 100 }, { foodId: 'chicken_thigh', grams: 150 }, { foodId: 'hummus', grams: 30 }, { foodId: 'tahini', grams: 20 }, { foodId: 'salad', grams: 80 }, { foodId: 'fries', grams: 80, optional: true }] },
+  { id: 'out_shawarma_pita', name: 'פיתה שווארמה', kind: 'outside', effort: 'none', totalMinutes: 0, activeMinutes: 0, slots: ['outside'],
+    items: [{ foodId: 'pita', grams: 100 }, { foodId: 'shawarma_meat', grams: 150 }, { foodId: 'tahini', grams: 20 }, { foodId: 'salad', grams: 80 }, { foodId: 'fries', grams: 80, optional: true }] },
+  { id: 'out_shawarma_lafa', name: 'לאפה שווארמה', kind: 'outside', effort: 'none', totalMinutes: 0, activeMinutes: 0, slots: ['outside'],
+    items: [{ foodId: 'lafa', grams: 150 }, { foodId: 'shawarma_meat', grams: 180 }, { foodId: 'tahini', grams: 25 }, { foodId: 'salad', grams: 80 }] },
+  { id: 'out_falafel', name: 'פלאפל בפיתה', kind: 'outside', effort: 'none', totalMinutes: 0, activeMinutes: 0, slots: ['outside'],
+    items: [{ foodId: 'pita', grams: 100 }, { foodId: 'falafel', grams: 102 }, { foodId: 'hummus', grams: 40 }, { foodId: 'tahini', grams: 20 }, { foodId: 'salad', grams: 80 }, { foodId: 'fries', grams: 60, optional: true }] },
+  { id: 'out_sabich', name: 'סביח', kind: 'outside', effort: 'none', totalMinutes: 0, activeMinutes: 0, slots: ['outside'],
+    items: [{ foodId: 'pita', grams: 100 }, { foodId: 'eggplant_fried', grams: 120 }, { foodId: 'egg', grams: 50 }, { foodId: 'hummus', grams: 30 }, { foodId: 'tahini', grams: 25 }, { foodId: 'salad', grams: 60 }] },
+  { id: 'out_schnitzel_baguette', name: 'שניצל בבגט', kind: 'outside', effort: 'none', totalMinutes: 0, activeMinutes: 0, slots: ['outside'],
+    items: [{ foodId: 'baguette', grams: 200 }, { foodId: 'schnitzel_ready', grams: 150 }, { foodId: 'hummus', grams: 30 }, { foodId: 'salad', grams: 80 }] },
+  { id: 'out_cheese_toast', name: 'טוסט גבינות', kind: 'outside', effort: 'none', totalMinutes: 0, activeMinutes: 0, slots: ['outside'],
+    items: [{ foodId: 'baguette', grams: 150 }, { foodId: 'mozzarella', grams: 80 }, { foodId: 'bulgarian', grams: 30 }, { foodId: 'salad', grams: 60 }, { foodId: 'juice', grams: 330, optional: true }] },
+  { id: 'out_sausage_toast', name: 'טוסט נקניק (כשר, בלי גבינה)', kind: 'outside', effort: 'none', totalMinutes: 0, activeMinutes: 0, slots: ['outside'],
+    note: 'מתוכנן בלי גבינה חלבית.',
+    items: [{ foodId: 'baguette', grams: 150 }, { foodId: 'sausage_slices', grams: 80 }, { foodId: 'salad', grams: 60 }, { foodId: 'mayo', grams: 14 }, { foodId: 'cola', grams: 330, optional: true }] },
+  { id: 'out_bourekas', name: 'בורקס עם ביצה', kind: 'outside', effort: 'none', totalMinutes: 0, activeMinutes: 0, slots: ['outside'],
+    items: [{ foodId: 'bourekas', grams: 250 }, { foodId: 'egg', grams: 50 }, { foodId: 'salad', grams: 60 }] },
+  { id: 'out_pizza', name: 'פיצה ממקום כשר (3 משולשים)', kind: 'outside', effort: 'none', totalMinutes: 0, activeMinutes: 0, slots: ['outside'],
+    items: [{ foodId: 'pizza_slice', grams: 321 }, { foodId: 'cola', grams: 330, optional: true }] },
+  { id: 'out_mcdonalds', name: 'ארוחת המבורגר במקדונלדס כשר', kind: 'outside', effort: 'none', totalMinutes: 0, activeMinutes: 0, slots: ['outside'],
+    note: 'אין ״ארוחה״ אחת קבועה: יש לבחור המבורגר, גודל צ׳יפס ומשקה. האומדן אינו נתון של מקדונלדס ישראל. כשרות נבדקת לפי סניף.',
+    items: [{ foodId: 'burger_sandwich', grams: 230 }, { foodId: 'fries', grams: 117 }, { foodId: 'cola', grams: 400, optional: true }] },
+  { id: 'out_burger', name: 'המבורגר ממסעדה', kind: 'outside', effort: 'none', totalMinutes: 0, activeMinutes: 0, slots: ['outside'],
+    items: [{ foodId: 'bun', grams: 80 }, { foodId: 'beef_ground', grams: 180 }, { foodId: 'mayo', grams: 14 }, { foodId: 'salad', grams: 40 }, { foodId: 'fries', grams: 100, optional: true }] },
+  { id: 'out_hotdog', name: 'נקניקייה בלחמנייה', kind: 'outside', effort: 'none', totalMinutes: 0, activeMinutes: 0, slots: ['outside'],
+    items: [{ foodId: 'bun', grams: 140 }, { foodId: 'hotdog', grams: 100 }, { foodId: 'fries', grams: 117 }, { foodId: 'cola', grams: 330, optional: true }] },
+  { id: 'out_hummus_plate', name: 'צלחת חומוס עם פיתה', kind: 'outside', effort: 'none', totalMinutes: 0, activeMinutes: 0, slots: ['outside'],
+    items: [{ foodId: 'hummus', grams: 250 }, { foodId: 'pita', grams: 180 }, { foodId: 'egg', grams: 50 }, { foodId: 'salad', grams: 60 }] },
+  { id: 'out_stirfry', name: 'מוקפץ עוף ונודלס', kind: 'outside', effort: 'none', totalMinutes: 0, activeMinutes: 0, slots: ['outside'],
+    items: [{ foodId: 'noodles_cooked', grams: 300 }, { foodId: 'chicken_breast', grams: 150 }, { foodId: 'olive_oil', grams: 20 }, { foodId: 'pepper', grams: 100 }, { foodId: 'stirfry_sauce', grams: 40 }] },
+  { id: 'out_sushi', name: 'סושי (ללא פירות ים)', kind: 'outside', effort: 'none', totalMinutes: 0, activeMinutes: 0, slots: ['outside'],
+    items: [{ foodId: 'sushi', grams: 448 }, { foodId: 'juice', grams: 330, optional: true }] },
+  { id: 'out_pasta', name: 'פסטה ממסעדה', kind: 'outside', effort: 'none', totalMinutes: 0, activeMinutes: 0, slots: ['outside'],
+    items: [{ foodId: 'pasta_dry', grams: 150 }, { foodId: 'tomato_sauce', grams: 200 }, { foodId: 'mozzarella', grams: 40 }, { foodId: 'olive_oil', grams: 20 }, { foodId: 'bread', grams: 56 }] },
+]
+
+/** פריטים שסומנו בשאלון (נספח א). כל השאר ״לא ידוע״, לא ״לא אוהב״. */
+export const LOVED_FOODS = [
+  'bread', 'pita', 'tortilla', 'bagel', 'rice_cooked', 'rice_dry', 'pasta_dry', 'couscous_dry', 'potato_baked', 'cornflakes', 'granola',
+  'egg', 'mozzarella', 'cottage', 'bulgarian', 'cream_cheese', 'yogurt', 'milk', 'chicken_breast', 'chicken_thigh', 'beef_ground', 'salmon',
+  'hummus', 'schnitzel_ready', 'nuggets', 'ravioli', 'salad', 'cucumber', 'tomato', 'pepper', 'banana', 'apple', 'frozen_fruit', 'avocado',
+  'peanut_butter', 'jam', 'honey', 'choc_spread', 'tomato_sauce', 'olive_oil', 'nuts', 'dates', 'crackers', 'chocolate', 'cookies',
+  'water', 'juice', 'cola', 'choco_drink', 'fries', 'onion_rings',
+]
+export const LOVED_RECIPES = RECIPES.map((r) => r.id)
