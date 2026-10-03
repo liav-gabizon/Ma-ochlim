@@ -36,7 +36,7 @@ export function dueReminder(s: AppState, now: Date): DueReminder | null {
   for (const slot of SLOTS) {
     const meal = s.plan.find((p) => p.date === today && p.slot === slot)
     // דיווח, דילוג או החלפה מבטלים את התזכורת
-    if (!meal || meal.status !== 'planned') continue
+    if (!meal || meal.status !== 'planned' || meal.reminderCancelled) continue
     const slotKey = `${today}:${slot}`
     const snoozeUntil = s.snoozed[slotKey]
     const base = hhmmToMinutes(s.profile.mealTimes[slot])

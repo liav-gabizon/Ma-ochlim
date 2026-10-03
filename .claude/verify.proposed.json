@@ -1,0 +1,33 @@
+{
+  "commands": [
+    {
+      "name": "merge and replacement regressions",
+      "run": "npm run test:qa",
+      "kind": "unit",
+      "timeout": 120,
+      "count_regex": "^# tests (\\d+)",
+      "min_count": 14,
+      "skip_regex": "^# skipped (\\d+)"
+    },
+    {
+      "name": "existing engine tests",
+      "run": "npm test",
+      "kind": "unit",
+      "timeout": 120,
+      "count_regex": "Tests\\s+(\\d+) passed",
+      "min_count": 35
+    },
+    {
+      "name": "locked production typecheck and build",
+      "run": "npm run build",
+      "kind": "build",
+      "timeout": 180
+    },
+    {
+      "name": "patch whitespace",
+      "run": "git diff --check",
+      "kind": "static",
+      "timeout": 30
+    }
+  ]
+}

@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "build:single": "tsc -b && vite build --mode single",
     "test": "vitest run",
+    "test:qa": "node --experimental-strip-types --experimental-loader ./scripts/ts-loader.mjs --test tests/qa-regressions.node.mjs",
     "typecheck": "tsc -b"
   },
   "dependencies": {

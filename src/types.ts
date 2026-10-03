@@ -74,6 +74,8 @@ export interface PlannedMeal {
   multiplier: number
   status: SlotStatus
   logId?: string
+  /** החלפה מבטלת את תזכורת המשבצת גם אחרי מיזוג ותכנון מחדש. */
+  reminderCancelled?: boolean
 }
 
 export type Pref = 'love' | 'try' | 'dislike' | 'unknown'
@@ -181,4 +183,10 @@ export interface AppState {
   sent: SentNotification[]
   snoozed: Record<string, string> // slotKey -> ISO
   ideas: string[] // ״בא לי״ שנשמרו לתכנון
+  /** שתי כוונות שונות נשמרות עד שהמשתמש בוחר, בלי שינוי גרסת schema. */
+  mergeConflicts?: MergeConflict[]
 }
+
+export type MergeConflict =
+  | { field: 'prefs'; key: string; values: Pref[] }
+  | { field: 'shopping.bought'; key: string; values: boolean[] }

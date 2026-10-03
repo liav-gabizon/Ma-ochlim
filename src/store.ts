@@ -4,6 +4,8 @@ import { localDate } from './engine/dates'
 import { calcRecipe } from './engine/nutrition'
 import type { DraftLine } from './engine/parse'
 import { generateWeek } from './engine/plan'
+import { replacePlannedState } from './engine/meal'
+import { resolveMergeConflict } from './engine/sync'
 import type { RankContext } from './engine/swaps'
 import type { AppState, GoalVersion, LogEntry, LogItemSnapshot, PlannedMeal, Pref, Profile, Recipe, SlotId } from './types'
 
@@ -210,18 +212,7 @@ export function useAppState() {
       update((s) => ({ ...s, plan: s.plan.map((m) => (m.date === date && m.slot === slot ? { ...m, status } : m)) }))
     },
     replacePlanned(date: string, slot: SlotId, recipeId: string, multiplier: number, rejectOld = true) {
-      update((s) => {
-        const old = s.plan.find((m) => m.date === date && m.slot === slot)
-        const rejections = { ...s.rejections }
-        if (old && rejectOld) rejections[old.recipeId] = (rejections[old.recipeId] ?? 0) + 1
-        const exists = s.plan.some((m) => m.date === date && m.slot === slot)
-        const nm: PlannedMeal = { date, slot, recipeId, multiplier, status: 'planned' }
-        return {
-          ...s,
-          rejections,
-          plan: exists ? s.plan.map((m) => (m.date === date && m.slot === slot ? nm : m)) : [...s.plan, nm],
-        }
-      })
+      update((s) => replacePlannedState(s, date, slot, recipeId, multiplier, rejectOld))
     },
     regenerateWeek(start: string) {
       update((s) => {
@@ -249,7 +240,7 @@ export function useAppState() {
       update((s) => ({ ...s, profile: { ...s.profile, ...p } }))
     },
     setPref(id: string, pref: Pref) {
-      update((s) => ({ ...s, prefs: { ...s.prefs, [id]: pref } }))
+      update((s) => resolveMergeConflict(s, 'prefs', id, pref))
     },
     toggleAlwaysGood(id: string) {
       update((s) => {
@@ -270,13 +261,15 @@ export function useAppState() {
     },
     markBought(foodId: string, v: boolean) {
       update((s) => ({
-        ...s,
-        shopping: { ...s.shopping, bought: { ...s.shopping.bought, [foodId]: v } },
+        ...resolveMergeConflict(s, 'shopping.bought', foodId, v),
         pantry: { ...s.pantry, [foodId]: v ? true : s.pantry[foodId] },
       }))
     },
+    resolveMergeConflict(field: 'prefs' | 'shopping.bought', key: string, value: Pref | boolean) {
+      update((s) => resolveMergeConflict(s, field, key, value))
+    },
     resetShopping() {
-      update((s) => ({ ...s, shopping: { confirmed: null, confirmedAt: null, bought: {} } }))
+      update((s) => ({ ...s, shopping: { confirmed: null, confirmedAt: null, bought: {} }, mergeConflicts: (s.mergeConflicts ?? []).filter((c) => c.field !== 'shopping.bought') }))
     },
     addWeight(date: string, kg: number) {
       update((s) => ({ ...s, weights: [...s.weights.filter((w) => w.date !== date), { id: uid(), date, kg }] }))

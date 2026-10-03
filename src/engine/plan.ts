@@ -69,7 +69,7 @@ export function generateWeek(start: string, recipes: Recipe[], ctx: RankContext,
     const fresh = generateDay(date, recipes, ctx, [...keep, ...result])
     for (const slot of SLOTS) {
       // תכנון מחדש לא נוגע בארוחות שכבר דווחו
-      const k = kept.find((p) => p.slot === slot && p.status !== 'planned')
+      const k = kept.find((p) => p.slot === slot && (p.status !== 'planned' || p.reminderCancelled))
       const f = fresh.find((p) => p.slot === slot)
       if (k) result.push(k)
       else if (f) result.push(f)

@@ -39,7 +39,7 @@ function dueReminders(s: State, now: Date, sentToday: number): { key: string; sl
   for (const slot of SLOTS) {
     // deno-lint-ignore no-explicit-any
     const meal = (s.plan ?? []).find((p: any) => p.date === today && p.slot === slot)
-    if (!meal || meal.status !== 'planned') continue
+    if (!meal || meal.status !== 'planned' || meal.reminderCancelled) continue
     const slotKey = `${today}:${slot}`
     const snooze = s.snoozed?.[slotKey]
     let due = hm(s.profile.mealTimes[slot])

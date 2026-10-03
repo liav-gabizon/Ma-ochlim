@@ -112,6 +112,7 @@ function RecipeSheet({ r, state, actions, today, onClose }: { r: Recipe; state: 
           <span>תמיד מתאים לי (עד 3)</span>
         </label>
       )}
+      {state.alwaysGood.length > 3 && <p className="note">באיחוד נשמרו כל {state.alwaysGood.length} המועדפים. אפשר להסיר פריטים כדי לחזור לעד 3.</p>}
       {check.ok && (
         <>
           <h3>לשבץ להיום</h3>

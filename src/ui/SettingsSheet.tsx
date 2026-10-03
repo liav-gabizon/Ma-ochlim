@@ -6,6 +6,7 @@ import type { Allergen, AppState, Profile, SlotId } from '../types'
 import { SLOTS } from '../types'
 import type { CloudApi } from '../useCloud'
 import { AccountSection, ImportSection } from './AccountSection'
+import { MergeConflicts } from './MergeConflicts'
 import { Sheet } from './common'
 
 export function SettingsSheet({ state, actions, today, onClose, cloudApi }: { state: AppState; actions: Actions; today: string; onClose: () => void; cloudApi: CloudApi }) {
@@ -50,6 +51,7 @@ export function SettingsSheet({ state, actions, today, onClose, cloudApi }: { st
 
   return (
     <Sheet title="פרופיל והגדרות" onClose={onClose}>
+      <MergeConflicts state={state} actions={actions} />
       <section>
         <h3>חשבון וגיבוי</h3>
         <AccountSection state={state} actions={actions} cloudApi={cloudApi} />

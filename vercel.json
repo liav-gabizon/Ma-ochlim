@@ -1,4 +1,5 @@
 {
+  "git": { "deploymentEnabled": { "fix/qa-merge-reminders": false } },
   "headers": [
     { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }, { "key": "Service-Worker-Allowed", "value": "/" }] },
     { "source": "/index.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }

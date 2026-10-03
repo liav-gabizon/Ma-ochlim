@@ -90,6 +90,11 @@ export default function App() {
         </div>
       </header>
       {!saveOk && <div className="banner warn">לא הצלחתי לשמור במכשיר. השינויים יישמרו רק עד סגירת הדף.</div>}
+      {!!state.mergeConflicts?.length && (
+        <button className="banner warn" onClick={() => setOverlay({ kind: 'settings' })}>
+          באיחוד נמצאו בחירות שונות. כל האפשרויות נשמרו — לחץ לבחירה בהגדרות.
+        </button>
+      )}
 
       <main>
         {tab === 'today' && (
