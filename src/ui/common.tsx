@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react'
 import { SOURCE_LABEL } from '../data/foods'
 import { displayKcal, type MealCalc } from '../engine/nutrition'
+import { rangeText, recipeTimes } from '../engine/recipeBook'
 import type { Effort, Recipe, Source } from '../types'
 
 export function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
@@ -49,6 +50,10 @@ export const EFFORT_LABEL: Record<Effort, string> = {
 
 export function timeText(r: Recipe) {
   if (r.kind === 'outside') return 'קנייה בחוץ'
+  if (r.time) {
+    const { active, total } = recipeTimes(r)
+    return `כולל: ${rangeText(total)} · עבודה: ${rangeText(active)}`
+  }
   return r.activeMinutes === r.totalMinutes ? `${r.totalMinutes} דק׳` : `${r.totalMinutes} דק׳ (${r.activeMinutes} עבודה)`
 }
 

@@ -225,3 +225,22 @@ textarea { resize: vertical; }
 .account-form { display: block; }
 .tag-kosher { background: var(--warn-bg); color: var(--warn-ink); }
 label.btn { display: inline-flex; align-items: center; }
+
+/* ספר מתכונים */
+.book { display: flex; flex-direction: column; gap: 12px; }
+.book .chips { flex-wrap: wrap; }
+.tag-mine { background: var(--accent-soft); color: var(--text); margin-inline-start: 6px; }
+.recipe-row .tag { margin-inline-start: 6px; }
+.link.block { display: block; white-space: normal; text-align: start; }
+.facts { width: 100%; border-collapse: collapse; }
+.facts td { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.facts td.num { text-align: end; }
+.stepper { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+.stepper strong { min-width: 2ch; text-align: center; font-size: 1.15rem; }
+.range { display: flex; gap: 12px; }
+.range label { display: flex; align-items: center; gap: 6px; flex: 1; }
+.range input { width: 100%; min-width: 0; }
+fieldset.field { border: 0; padding: 0; margin: 0 0 12px; }
+fieldset.field legend { padding: 0; margin-bottom: 6px; }
+.diff li { padding: 2px 0; }
+.draft-line .inline input { width: 80px; }

@@ -61,8 +61,18 @@ export function summarize(calc: ItemCalc[]): MealCalc {
   return { items: calc, kcal, complete, protein, certainty: CERTAINTY_ORDER[worst] ?? 'estimate' }
 }
 
+/**
+ * במתכון מהספר הכמויות הן לכל המתכון, ולכן ״מנה״ = הכמות חלקי מספר המנות.
+ * בארוחות הקיימות ובמתכונים מטקסט חופשי הכמויות הן כבר של מנה אחת.
+ * מתכון מהספר בלי מספר מנות אינו ניתן לחישוב למנה; הוא מסומן חלקי (recipeBook.completeness).
+ */
+export function servingDivisor(r: Recipe): number {
+  return r.origin === 'book' && r.servings && r.servings > 0 ? r.servings : 1
+}
+
+/** חישוב למנה אחת × multiplier */
 export function calcRecipe(r: Recipe, multiplier = 1, skipOptional: string[] = []): MealCalc {
-  const c = calcItems(r.items, multiplier, skipOptional)
+  const c = calcItems(r.items, multiplier / servingDivisor(r), skipOptional)
   // ארוחה שכל רכיביה ממאגר מוכר היא ״לפי מתכון״; אוכל בחוץ נשאר אומדן
   if (r.kind === 'outside') c.certainty = 'estimate'
   else if (c.certainty === 'usda' || c.certainty === 'label') c.certainty = 'recipe'

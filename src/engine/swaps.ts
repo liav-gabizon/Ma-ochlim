@@ -1,6 +1,7 @@
 import type { Pref, Profile, Recipe, SlotId } from '../types'
 import { checkRecipe } from './constraints'
 import { calcRecipe, type MealCalc } from './nutrition'
+import { isPlannable } from './recipeBook'
 
 /** מכפילי מנה מעשיים בלבד: לא חלקיק ביצה ולא כמות רוטב חריגה (פרק 8). */
 export const PRACTICAL_MULTIPLIERS = [1, 0.75, 1.25, 1.5]
@@ -37,6 +38,8 @@ export function bestMultiplier(r: Recipe, target: number): { multiplier: number;
 }
 
 export function eligible(r: Recipe, slot: SlotId, ctx: RankContext): boolean {
+  // מתכון שהוסר או שחסרים בו נתונים לא נכנס לתכנון אוטומטי ולהחלפות ±10%
+  if (!isPlannable(r)) return false
   if (!checkRecipe(r, ctx.profile).ok) return false
   if ((ctx.prefs[r.id] ?? 'unknown') === 'dislike') return false
   if (slot === 'outside') return r.kind === 'outside'
@@ -63,7 +66,7 @@ export function suggestSwaps(params: {
   const opts: (SwapOption & { score: number })[] = []
   for (const r of recipes) {
     if (r.id === excludeId) continue
-    if (params.anyKind ? !checkRecipe(r, ctx.profile).ok || ctx.prefs[r.id] === 'dislike' : !eligible(r, slot, ctx)) continue
+    if (params.anyKind ? !isPlannable(r) || !checkRecipe(r, ctx.profile).ok || ctx.prefs[r.id] === 'dislike' : !eligible(r, slot, ctx)) continue
     let pick: { multiplier: number; calc: MealCalc } | null = null
     for (const m of PRACTICAL_MULTIPLIERS) {
       const calc = calcRecipe(r, m)

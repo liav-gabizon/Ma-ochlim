@@ -1,5 +1,5 @@
 import { LOVED_FOODS, LOVED_RECIPES } from '../data/recipes'
-import type { AppState, LogEntry, MergeConflict, PlannedMeal, Pref } from '../types'
+import type { AppState, LogEntry, MergeConflict, PlannedMeal, Pref, Recipe } from '../types'
 
 // מיזוג בין מצב המכשיר למצב בחשבון. היומן מאוחד לפי מפתח ייחודי, כך שאותה ארוחה
 // לא נרשמת פעמיים גם אם דווחה בשני מכשירים או נשלחה שוב אחרי ניתוק.
@@ -85,12 +85,27 @@ export function mergeStates(local: AppState, remote: AppState): AppState {
     mergeConflicts,
     log: mergeLogs(remote.log, local.log),
     plan: mergePlan(local.plan, remote.plan),
-    customRecipes: [...remote.customRecipes.filter((r) => !local.customRecipes.some((l) => l.id === r.id)), ...local.customRecipes],
+    customRecipes: mergeRecipes(local.customRecipes, remote.customRecipes),
     ideas: [...new Set([...local.ideas, ...remote.ideas])].slice(0, 20),
     pantry: { ...remote.pantry, ...local.pantry },
     dayComplete: { ...remote.dayComplete, ...local.dayComplete },
     sent: [...remote.sent, ...local.sent].filter((s, i, arr) => arr.findIndex((x) => x.key === s.key) === i).slice(-60),
   }
+}
+
+/**
+ * מתכונים אישיים: איחוד לפי מזהה, כך שמתכון שקיים רק בצד אחד לא נעלם.
+ * כששני הצדדים ערכו את אותו מתכון, הגרסה עם updatedAt מאוחר יותר גוברת (כולל הסרה מהספר);
+ * בלי חותמת בשני הצדדים נשמרת ההתנהגות הקודמת: המכשיר גובר.
+ */
+export function mergeRecipes(local: Recipe[], remote: Recipe[]): Recipe[] {
+  const out = new Map<string, Recipe>()
+  for (const r of remote) out.set(r.id, r)
+  for (const l of local) {
+    const r = out.get(l.id)
+    if (!r || (l.updatedAt ?? '') >= (r.updatedAt ?? '')) out.set(l.id, l)
+  }
+  return [...out.values()]
 }
 
 /** בחירה מפורשת פותרת רק את ההתנגשות המתאימה; שאר החלופות נשמרות. */

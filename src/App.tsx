@@ -108,7 +108,7 @@ export default function App() {
             openSettings={() => setOverlay({ kind: 'settings' })}
           />
         )}
-        {tab === 'food' && <FoodTab state={state} actions={actions} today={today} />}
+        {tab === 'food' && <FoodTab state={state} actions={actions} today={today} openNoEnergy={() => setOverlay({ kind: 'noEnergy', meal: null, mode: 'energy' })} />}
         {tab === 'week' && <WeekTab state={state} actions={actions} today={today} openMeal={openMeal} />}
         {tab === 'progress' && <Progress state={state} actions={actions} today={today} />}
       </main>
