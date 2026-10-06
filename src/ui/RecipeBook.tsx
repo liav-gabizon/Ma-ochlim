@@ -6,7 +6,7 @@ import { addDays, dayName, shortDate } from '../engine/dates'
 import { kosherOf } from '../engine/nutrition'
 import { applyAnswer, parseFood, type Draft } from '../engine/parse'
 import {
-  allergensKnown, allergensOf, bookNutrition, cleanLink, completeness, effortFromActive, fitsWithin, kosherLabel,
+  allergensKnown, allergensOf, bookNutrition, isFavorite, cleanLink, completeness, effortFromActive, fitsWithin, kosherLabel,
   parseRange, portionsOf, rangeText, recipeTimes, timeKnown,
 } from '../engine/recipeBook'
 import { isEmptyDiff } from '../engine/shopping'
@@ -41,14 +41,15 @@ export function RecipeBook({ state, actions, today, q, openNoEnergy }: {
 
   const recipes = allRecipes(state)
   const book = recipes.filter((r) => r.kind === 'home' && !r.archived)
-  const ctx = { ...rankCtx(state), alwaysGood: state.alwaysGood }
+  const ctx = { ...rankCtx(state), alwaysGood: state.alwaysGood, favorites: book.filter((r) => isFavorite(state, r.id)).map((r) => r.id) }
   const suggestSlot: SlotId = slot ?? 'evening'
   const suggestion = suggestFromBook(book, ctx, { slot: suggestSlot, maxMinutes: quick ? 30 : null, skip })
 
   const term = q.trim()
   const base = book.filter((r) => {
     if (term && !r.name.includes(term)) return false
-    if (fav && !(state.prefs[r.id] === 'love' || state.alwaysGood.includes(r.id))) return false
+    // מועדפים = רק מה שסומן במפורש ב״שמור למועדפים״; ״אוהב״ הוא העדפת טעם ולא נכלל
+    if (fav && !isFavorite(state, r.id)) return false
     if (backups && !r.backup) return false
     if (slot && !r.slots.includes(slot)) return false
     // סינון בשרי/חלבי/פרווה רק כשיש רשימת רכיבים מלאה
@@ -158,7 +159,7 @@ function BookRow({ r, state, onOpen }: { r: Recipe; state: AppState; onOpen: () 
       <button className={`recipe-row ${blocked ? 'blocked' : ''}`} onClick={onOpen}>
         <span>
           <strong>
-            {state.alwaysGood.includes(r.id) && '★ '}
+            {isFavorite(state, r.id) && '★ '}
             {r.name}
             {r.origin === 'book' && <span className="tag tag-mine">שלי</span>}
             {r.backup && <span className="tag">גיבוי</span>}
@@ -189,7 +190,7 @@ export function BookRecipeSheet({ r, state, actions, today, onEdit, onClose }: {
   const check = checkRecipe(r, state.profile)
   const pref = state.prefs[r.id] ?? 'unknown'
   const t = recipeTimes(r)
-  const isLoved = pref === 'love'
+  const fav = isFavorite(state, r.id)
   const allergens = allergensKnown(r) ? [...allergensOf(r.items)].map(allergenLabel) : null
 
   return (
@@ -250,7 +251,7 @@ export function BookRecipeSheet({ r, state, actions, today, onEdit, onClose }: {
       {r.origin !== 'book' && <p className="muted small">ארוחה מוכנה מראש באפליקציה: רכיבים וכמויות למנה אחת, בלי הוראות הכנה.</p>}
 
       <div className="actions">
-        <button className={`btn ${isLoved ? 'primary' : ''}`} aria-pressed={isLoved} onClick={() => actions.setPref(r.id, isLoved ? 'unknown' : 'love')}>{isLoved ? '★ במועדפים' : '☆ שמור למועדפים'}</button>
+        <button className={`btn ${fav ? 'primary' : ''}`} aria-pressed={fav} onClick={() => actions.setFavorite(r.id, !fav)}>{fav ? '★ במועדפים' : '☆ שמור למועדפים'}</button>
         <button className={`btn ${pref === 'dislike' ? 'primary' : ''}`} aria-pressed={pref === 'dislike'} onClick={() => actions.setPref(r.id, pref === 'dislike' ? 'unknown' : 'dislike')}>לא לטעמי</button>
         {r.link && (
           <a className="btn" href={r.link} target="_blank" rel="noopener noreferrer">פתח קישור ↗</a>
@@ -262,7 +263,7 @@ export function BookRecipeSheet({ r, state, actions, today, onEdit, onClose }: {
         <input type="checkbox" checked={state.alwaysGood.includes(r.id)} onChange={() => actions.toggleAlwaysGood(r.id)} disabled={!state.alwaysGood.includes(r.id) && state.alwaysGood.length >= 3} />
         <span>תמיד מתאים לי (עד 3)</span>
       </label>
-      {state.alwaysGood.length > 3 && <p className="note">באיחוד נשמרו כל {state.alwaysGood.length} המועדפים. אפשר להסיר פריטים כדי לחזור לעד 3.</p>}
+      {state.alwaysGood.length > 3 && <p className="note">באיחוד נשמרו כל {state.alwaysGood.length} פריטי ״תמיד מתאים לי״. אפשר להסיר פריטים כדי לחזור לעד 3.</p>}
 
       <h3>העדפה</h3>
       <div className="chips">

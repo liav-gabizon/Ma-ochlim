@@ -50,7 +50,7 @@ export const EFFORT_LABEL: Record<Effort, string> = {
 
 export function timeText(r: Recipe) {
   if (r.kind === 'outside') return 'קנייה בחוץ'
-  if (r.time) {
+  if (r.time || r.custom) {
     const { active, total } = recipeTimes(r)
     return `כולל: ${rangeText(total)} · עבודה: ${rangeText(active)}`
   }

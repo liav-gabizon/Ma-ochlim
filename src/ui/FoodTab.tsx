@@ -8,6 +8,7 @@ import type { AppState, Pref, Recipe, SlotId } from '../types'
 import { SLOTS } from '../types'
 import { Certainty, EFFORT_LABEL, Kcal, KosherUnverified, proteinText, Sheet, timeText } from './common'
 import { BookRecipeSheet, RecipeBook } from './RecipeBook'
+import { isFavorite } from '../engine/recipeBook'
 
 // ״ספר מתכונים״ מחליף את ״בבית״ (אותם מתכוני בית + מתכונים אישיים)
 type Seg = 'fav' | 'book' | 'outside' | 'db'
@@ -21,7 +22,7 @@ export function FoodTab({ state, actions, today, openNoEnergy }: { state: AppSta
   const match = (name: string) => !q.trim() || name.includes(q.trim())
 
   let list: Recipe[] = []
-  if (seg === 'fav') list = recipes.filter((r) => state.alwaysGood.includes(r.id) || r.custom || r.backup)
+  if (seg === 'fav') list = recipes.filter((r) => isFavorite(state, r.id) || state.alwaysGood.includes(r.id) || r.custom || r.backup)
   if (seg === 'outside') list = recipes.filter((r) => r.kind === 'outside')
   list = list.filter((r) => match(r.name))
 
@@ -70,7 +71,7 @@ export function FoodTab({ state, actions, today, openNoEnergy }: { state: AppSta
               <li key={r.id}>
                 <button className={`recipe-row ${blocked ? 'blocked' : ''}`} onClick={() => setOpen(r)}>
                   <span>
-                    <strong>{state.alwaysGood.includes(r.id) && '★ '}{r.name}</strong>
+                    <strong>{isFavorite(state, r.id) && '★ '}{r.name}</strong>
                     <span className="muted small">{timeText(r)} · {EFFORT_LABEL[r.effort]}{blocked && ' · לא מתאים לאילוצים'}</span>
                     {r.kind === 'outside' && <KosherUnverified />}
                   </span>

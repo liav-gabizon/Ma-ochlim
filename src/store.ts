@@ -243,6 +243,10 @@ export function useAppState() {
     setPref(id: string, pref: Pref) {
       update((s) => resolveMergeConflict(s, 'prefs', id, pref))
     },
+    /** ״שמור למועדפים״: סימון מפורש, לא משנה את העדפת הטעם */
+    setFavorite(id: string, on: boolean) {
+      update((s) => ({ ...s, favorites: { ...(s.favorites ?? {}), [id]: { on, at: now().toISOString() } } }))
+    },
     toggleAlwaysGood(id: string) {
       update((s) => {
         const has = s.alwaysGood.includes(id)

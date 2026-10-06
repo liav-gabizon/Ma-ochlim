@@ -209,7 +209,14 @@ export interface AppState {
   ideas: string[] // ״בא לי״ שנשמרו לתכנון
   /** שתי כוונות שונות נשמרות עד שהמשתמש בוחר, בלי שינוי גרסת schema. */
   mergeConflicts?: MergeConflict[]
+  /**
+   * מועדפים שסומנו במפורש (★), נפרד מהעדפת הטעם ״אוהב״ ב־prefs.
+   * on=false נשמר כדי שהסרה תסתנכרן; במיזוג החותמת המאוחרת גוברת.
+   */
+  favorites?: Record<string, FavoriteMark>
 }
+
+export interface FavoriteMark { on: boolean; at: string }
 
 export type MergeConflict =
   | { field: 'prefs'; key: string; values: Pref[] }

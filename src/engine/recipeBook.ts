@@ -1,4 +1,4 @@
-import type { MinuteRange, Recipe } from '../types'
+import type { AppState, MinuteRange, Recipe } from '../types'
 import { calcRecipe, kosherOf, allergensOf, servingDivisor, type MealCalc } from './nutrition'
 
 // ספר המתכונים (שלב 3). עזרים טהורים בלבד: בלי React ובלי מצב.
@@ -32,10 +32,22 @@ export function isPlannable(r: Recipe): boolean {
 /** זמן עבודה וזמן כולל כשדות נפרדים. ארוחות קיימות: ערך מדויק מהנתונים. */
 export function recipeTimes(r: Recipe): { active: MinuteRange | null; total: MinuteRange | null } {
   if (r.time) return r.time
+  // מתכון אישי ישן מ״+ אוכל״ קיבל 15/10 דקות קבועות שהמשתמש לא הזין, ולכן הזמן לא ידוע
+  if (r.custom || !(r.totalMinutes > 0)) return { active: null, total: null }
   return {
     active: { min: r.activeMinutes, max: r.activeMinutes },
     total: { min: r.totalMinutes, max: r.totalMinutes },
   }
+}
+
+/** מועדף = סומן במפורש ב״שמור למועדפים״ (לא ״אוהב״ ולא ״תמיד מתאים לי״) */
+export function isFavorite(s: Pick<AppState, 'favorites'>, id: string): boolean {
+  return s.favorites?.[id]?.on === true
+}
+
+/** זמן מדויק משדה אחד: ריק = לא ידוע */
+export function exactMinutes(raw: string): MinuteRange | null {
+  return parseRange(raw, raw)
 }
 
 export function rangeText(x: MinuteRange | null): string {

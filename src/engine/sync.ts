@@ -1,5 +1,5 @@
 import { LOVED_FOODS, LOVED_RECIPES } from '../data/recipes'
-import type { AppState, LogEntry, MergeConflict, PlannedMeal, Pref, Recipe } from '../types'
+import type { AppState, FavoriteMark, LogEntry, MergeConflict, PlannedMeal, Pref, Recipe } from '../types'
 
 // מיזוג בין מצב המכשיר למצב בחשבון. היומן מאוחד לפי מפתח ייחודי, כך שאותה ארוחה
 // לא נרשמת פעמיים גם אם דווחה בשני מכשירים או נשלחה שוב אחרי ניתוק.
@@ -10,7 +10,7 @@ export function hasUserData(s: AppState | null | undefined): boolean {
   const editedPrefs = Object.entries(s.prefs).some(([id, pref]) => pref !== (defaultLoved.has(id) ? 'love' : 'unknown'))
   return s.log.length > 0 || s.weights.length > 0 || s.customRecipes.length > 0 || s.ideas.length > 0 ||
     Object.keys(s.pantry).length > 0 || s.plan.some((p) => p.status !== 'planned' || p.reminderCancelled) || s.goals.length > 1 ||
-    editedPrefs || s.alwaysGood.length > 0 || Object.keys(s.shopping.bought).length > 0 || !!s.mergeConflicts?.length
+    editedPrefs || Object.keys(s.favorites ?? {}).length > 0 || s.alwaysGood.length > 0 || Object.keys(s.shopping.bought).length > 0 || !!s.mergeConflicts?.length
 }
 
 export function mergeLogs(a: LogEntry[], b: LogEntry[]): LogEntry[] {
@@ -86,6 +86,7 @@ export function mergeStates(local: AppState, remote: AppState): AppState {
     log: mergeLogs(remote.log, local.log),
     plan: mergePlan(local.plan, remote.plan),
     customRecipes: mergeRecipes(local.customRecipes, remote.customRecipes),
+    favorites: mergeFavorites(local.favorites, remote.favorites),
     ideas: [...new Set([...local.ideas, ...remote.ideas])].slice(0, 20),
     pantry: { ...remote.pantry, ...local.pantry },
     dayComplete: { ...remote.dayComplete, ...local.dayComplete },
@@ -106,6 +107,16 @@ export function mergeRecipes(local: Recipe[], remote: Recipe[]): Recipe[] {
     if (!r || (l.updatedAt ?? '') >= (r.updatedAt ?? '')) out.set(l.id, l)
   }
   return [...out.values()]
+}
+
+/** מועדפים: לכל פריט נשמר הסימון האחרון לפי חותמת, כך שהוספה והסרה בשני מכשירים לא אובדות */
+export function mergeFavorites(local: Record<string, FavoriteMark> | undefined, remote: Record<string, FavoriteMark> | undefined): Record<string, FavoriteMark> {
+  const out: Record<string, FavoriteMark> = { ...(remote ?? {}) }
+  for (const [id, l] of Object.entries(local ?? {})) {
+    const r = out[id]
+    if (!r || l.at >= r.at) out[id] = l
+  }
+  return out
 }
 
 /** בחירה מפורשת פותרת רק את ההתנגשות המתאימה; שאר החלופות נשמרות. */

@@ -5,11 +5,11 @@ import type { AppState, Recipe } from '../types'
 import { previewPlan, suggestFromBook } from './bookPlan'
 import { calcRecipe } from './nutrition'
 import {
-  bookNutrition, cleanLink, completeness, fitsWithin, isPlannable, kosherLabel, parseRange, rangeText, recipeTimes, timeKnown,
+  bookNutrition, cleanLink, completeness, exactMinutes, fitsWithin, isFavorite, isPlannable, kosherLabel, parseRange, rangeText, recipeTimes, timeKnown,
 } from './recipeBook'
 import { generateShopping } from './shopping'
 import { suggestSwaps } from './swaps'
-import { mergeRecipes, mergeStates } from './sync'
+import { hasUserData, mergeFavorites, mergeRecipes, mergeStates } from './sync'
 
 const NOW = new Date('2026-10-05T08:00:00Z')
 const TODAY = '2026-10-05'
@@ -187,5 +187,59 @@ describe('ספר מתכונים: סנכרון בין מכשירים', () => {
     expect(m.customRecipes.find((r) => r.id === 'dev2')!.link).toBe('https://example.com/a')
     expect(m.prefs.dev1).toBe('love')
     expect(m.prefs.dev2).toBe('dislike')
+  })
+})
+
+describe('מועדפים נפרדים מ״אוהב״', () => {
+  it('״אוהב״ בברירת המחדל לא הופך פריט למועדף', () => {
+    const s = state()
+    const loved = Object.entries(s.prefs).filter(([, p]) => p === 'love').map(([id]) => id)
+    expect(loved.length).toBeGreaterThan(0)
+    for (const id of loved) expect(isFavorite(s, id)).toBe(false)
+  })
+  it('סימון מפורש בלבד הוא מועדף; on=false הוא הסרה', () => {
+    const s = state({ favorites: { a: { on: true, at: '2026-10-06T00:00:00.000Z' }, b: { on: false, at: '2026-10-06T00:00:00.000Z' } } })
+    expect(isFavorite(s, 'a')).toBe(true)
+    expect(isFavorite(s, 'b')).toBe(false)
+    expect(hasUserData(state({ favorites: { a: { on: true, at: 'x' } } }))).toBe(true)
+  })
+  it('mergeFavorites: הסימון האחרון גובר בשני הכיוונים, ופריט מצד אחד נשמר', () => {
+    const m = mergeFavorites(
+      { a: { on: false, at: '2026-10-06T10:00:00.000Z' }, b: { on: true, at: '2026-10-06T08:00:00.000Z' }, onlyLocal: { on: true, at: '2026-10-06T01:00:00.000Z' } },
+      { a: { on: true, at: '2026-10-06T09:00:00.000Z' }, b: { on: false, at: '2026-10-06T09:00:00.000Z' }, onlyRemote: { on: true, at: '2026-10-06T01:00:00.000Z' } },
+    )
+    expect(m.a.on).toBe(false) // הוסר מאוחר יותר במכשיר הזה
+    expect(m.b.on).toBe(false) // הוסר מאוחר יותר במכשיר השני
+    expect(m.onlyLocal.on).toBe(true)
+    expect(m.onlyRemote.on).toBe(true)
+  })
+  it('mergeStates שומר מועדפים והעדפות טעם בנפרד', () => {
+    const local = state({ prefs: { ...state().prefs, x: 'love' }, favorites: { y: { on: true, at: '2026-10-06T00:00:00.000Z' } } })
+    const remote = state({ prefs: { ...state().prefs, z: 'dislike' } })
+    const m = mergeStates(local, remote)
+    expect(m.prefs.x).toBe('love')
+    expect(m.prefs.z).toBe('dislike')
+    expect(isFavorite(m, 'y')).toBe(true)
+    expect(isFavorite(m, 'x')).toBe(false)
+  })
+})
+
+describe('זמן במתכון מ״+ אוכל״', () => {
+  const legacy: Recipe = { id: 'custom_old', name: 'ישן', kind: 'home', items: [{ foodId: 'egg', grams: 100 }], effort: '15', totalMinutes: 15, activeMinutes: 10, slots: ['evening'], custom: true }
+  it('מתכון ישן עם 15 דקות קבועות: הזמן לא ידוע ולא נכלל בעד 30', () => {
+    expect(timeKnown(legacy)).toBe(false)
+    expect(fitsWithin(legacy, 30)).toBe(false)
+    expect(rangeText(recipeTimes(legacy).total)).toBe('לא ידוע')
+  })
+  it('זמן שהוזן נשמר; שדה ריק = לא ידוע', () => {
+    expect(exactMinutes('')).toBeNull()
+    const withTime: Recipe = { ...legacy, id: 'c2', totalMinutes: 20, activeMinutes: 0, time: { total: exactMinutes('20'), active: exactMinutes('') } }
+    expect(fitsWithin(withTime, 30)).toBe(true)
+    expect(rangeText(recipeTimes(withTime).active)).toBe('לא ידוע')
+    const noTime: Recipe = { ...legacy, id: 'c3', totalMinutes: 0, activeMinutes: 0, time: { total: exactMinutes(''), active: exactMinutes('') } }
+    expect(fitsWithin(noTime, 30)).toBe(false)
+  })
+  it('ארוחות מובנות שומרות את הזמן הקיים', () => {
+    for (const r of RECIPES.filter((x) => x.kind === 'home')) expect(timeKnown(r)).toBe(true)
   })
 })

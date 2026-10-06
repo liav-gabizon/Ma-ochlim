@@ -9,7 +9,7 @@ import { prefScore, type RankContext } from './swaps'
  * הצעה אחת מספר המתכונים. רק מתכון מלא, שעומד באילוצים, לא סומן ״לא לטעמי״ ובטווח הזמן.
  * מועדפים ו״תמיד מתאים לי״ קודם. skip = מה שכבר נדחה ב״לא בא לי״ במסך הזה (לא נוגע ביומן).
  */
-export function suggestFromBook(recipes: Recipe[], ctx: RankContext & { alwaysGood: string[] }, opts: { slot: SlotId; maxMinutes: number | null; skip: string[] }): Recipe | null {
+export function suggestFromBook(recipes: Recipe[], ctx: RankContext & { alwaysGood: string[]; favorites?: string[] }, opts: { slot: SlotId; maxMinutes: number | null; skip: string[] }): Recipe | null {
   const pool = recipes.filter(
     (r) =>
       r.kind === 'home' &&
@@ -23,7 +23,7 @@ export function suggestFromBook(recipes: Recipe[], ctx: RankContext & { alwaysGo
   pool.sort((a, b) => score(b) - score(a) || a.name.localeCompare(b.name, 'he'))
   return pool[0] ?? null
   function score(r: Recipe) {
-    return prefScore(r.id, ctx) + (ctx.alwaysGood.includes(r.id) ? 2 : 0)
+    return prefScore(r.id, ctx) + (ctx.alwaysGood.includes(r.id) ? 2 : 0) + (ctx.favorites?.includes(r.id) ? 1 : 0)
   }
 }
 
