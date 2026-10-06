@@ -1,6 +1,7 @@
 import { RECIPES } from './data/recipes'
 import { hhmmToMinutes, localDate, localMinutes } from './engine/dates'
-import type { AppState, SlotId } from './types'
+import type { AppState, Recipe, SlotId } from './types'
+import { recipeTimes } from './engine/recipeBook'
 import { SLOTS } from './types'
 
 // תזכורות ארוחה (פרק 15). בגרסה זו התזמון רץ כשהאפליקציה פתוחה או ברקע קצר;
@@ -54,7 +55,7 @@ export function dueReminder(s: AppState, now: Date): DueReminder | null {
     const r = [...RECIPES, ...s.customRecipes].find((x) => x.id === meal.recipeId)
     const body = n.genericLockText
       ? 'זמן לאכול. לפתוח את הארוחה?'
-      : `זמן לאכול. ${r?.name ?? 'הארוחה'} ${r && r.totalMinutes > 0 ? `לוקח כ־${r.totalMinutes} דקות` : 'מחכה לך'}. לפתוח?`
+      : `זמן לאכול. ${r?.name ?? 'הארוחה'} ${r && exactTotal(r) ? `לוקח כ־${exactTotal(r)} דקות` : 'מחכה לך'}. לפתוח?`
     return { key, slot, title: SLOT_LABEL[slot], body }
   }
   return null
@@ -74,4 +75,11 @@ export async function showNotification(title: string, body: string, slot?: SlotI
 
 export function notificationSupport(): 'unsupported' | NotificationPermission {
   return typeof Notification === 'undefined' ? 'unsupported' : Notification.permission
+}
+
+
+/** זמן כולל רק כשהוא ידוע ומדויק; זמן ברירת מחדל ישן של מתכון אישי לא מוצג */
+function exactTotal(r: Recipe): number | null {
+  const t = recipeTimes(r).total
+  return t && t.max != null && t.max > 0 && t.min === t.max ? t.max : null
 }

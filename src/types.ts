@@ -60,6 +60,28 @@ export interface Recipe {
   note?: string
   /** מתכונים שהמשתמש יצר מטקסט חופשי */
   custom?: boolean
+  // ספר מתכונים: כל השדות אופציונליים, ולכן schema=1 לא משתנה ונתונים קיימים תקפים.
+  /** ״book״ = מתכון שהוזן בספר המתכונים; הכמויות בו הן לכל המתכון ולא למנה */
+  origin?: 'book'
+  /** מספר מנות במתכון כולו; null = לא ידוע (אין קלוריות למנה) */
+  servings?: number | null
+  /** כשקיים, גובר על totalMinutes/activeMinutes. null = זמן לא ידוע */
+  time?: { active: MinuteRange | null; total: MinuteRange | null }
+  difficulty?: 'easy' | 'medium' | 'hard' | null
+  /** קישור פרטי שהמשתמש הזין בעצמו */
+  link?: string
+  /** שורות רכיבים שלא זוהו במאגר או שכמותן לא אושרה; כל עוד קיימות, המתכון חלקי */
+  unresolved?: string[]
+  /** חותמת עדכון לצורך מיזוג בין מכשירים */
+  updatedAt?: string
+  /** מתכון שהוסר מהספר; נשמר כדי שהיומן והתכנון הישנים לא יישברו ושמיזוג לא יחזיר אותו */
+  archived?: boolean
+}
+
+/** טווח דקות. ״עד שעה״ = { min: null, max: 60 }; זמן מדויק = min === max */
+export interface MinuteRange {
+  min: number | null
+  max: number | null
 }
 
 export type SlotId = 'morning' | 'outside' | 'evening'
@@ -76,6 +98,8 @@ export interface PlannedMeal {
   logId?: string
   /** החלפה מבטלת את תזכורת המשבצת גם אחרי מיזוג ותכנון מחדש. */
   reminderCancelled?: boolean
+  /** כמה מנות מבשלים (מתכון מהספר); משפיע על הקניות בלבד, לא על הקלוריות שנאכלות */
+  cookServings?: number
 }
 
 export type Pref = 'love' | 'try' | 'dislike' | 'unknown'
@@ -185,7 +209,14 @@ export interface AppState {
   ideas: string[] // ״בא לי״ שנשמרו לתכנון
   /** שתי כוונות שונות נשמרות עד שהמשתמש בוחר, בלי שינוי גרסת schema. */
   mergeConflicts?: MergeConflict[]
+  /**
+   * מועדפים שסומנו במפורש (★), נפרד מהעדפת הטעם ״אוהב״ ב־prefs.
+   * on=false נשמר כדי שהסרה תסתנכרן; במיזוג החותמת המאוחרת גוברת.
+   */
+  favorites?: Record<string, FavoriteMark>
 }
+
+export interface FavoriteMark { on: boolean; at: string }
 
 export type MergeConflict =
   | { field: 'prefs'; key: string; values: Pref[] }

@@ -8,6 +8,7 @@ import { allRecipes, newIdemKey, snapshotDraft, type Actions } from '../store'
 import type { AppState, Recipe, SlotId } from '../types'
 import { SLOTS } from '../types'
 import { Certainty, Sheet } from './common'
+import { effortFromActive, exactMinutes } from '../engine/recipeBook'
 
 const DRAFT_KEY = 'ma-ochlim:freetext'
 
@@ -104,15 +105,26 @@ export function FreeTextSheet({ state, actions, onClose, initialText = '', onLog
     onClose()
   }
 
+  const [totalRaw, setTotalRaw] = useState('')
+  const [activeRaw, setActiveRaw] = useState('')
+
   const saveForPlan = (asFavorite: boolean) => {
     if (!draft) return
     actions.addIdea(title)
     if (asFavorite || slot !== 'none') {
       const items = draft.lines.flatMap((l) => (l.parts ? l.parts : l.foodId ? [{ foodId: l.foodId, grams: l.grams }] : []))
-      const r: Recipe = { id: `custom_${idemKey.slice(0, 8)}`, name: title, kind: 'home', items, effort: '15', totalMinutes: 15, activeMinutes: 10, slots: ['morning', 'evening'], custom: true, note: 'נוצר מכתיבה חופשית; הכמויות לפי הטיוטה שאושרה.' }
+      // זמן רק אם הוזן; ריק = לא ידוע ולא נכלל ב״עד 30 דקות״
+      const total = exactMinutes(totalRaw)
+      const active = exactMinutes(activeRaw)
+      const r: Recipe = {
+        id: `custom_${idemKey.slice(0, 8)}`, name: title, kind: 'home', items, effort: effortFromActive(active),
+        totalMinutes: total?.max ?? 0, activeMinutes: active?.max ?? 0, time: { active, total },
+        slots: ['morning', 'evening'], custom: true, updatedAt: new Date().toISOString(), note: 'נוצר מכתיבה חופשית; הכמויות לפי הטיוטה שאושרה.',
+      }
       if (draft.lines.some((l) => l.recipeId?.startsWith('out_'))) r.kind = 'outside'
       if (r.kind === 'outside') r.slots = ['outside']
       actions.saveCustomRecipe(r)
+      if (asFavorite) actions.setFavorite(r.id, true)
       if (slot !== 'none') actions.replacePlanned(today, slot, r.id, 1, false)
     }
     saveDraftText('')
@@ -207,6 +219,12 @@ export function FreeTextSheet({ state, actions, onClose, initialText = '', onLog
                   ))}
                 </select>
               </label>
+              {intent !== 'ate' && (
+                <div className="range">
+                  <label className="field"><span>זמן כולל (דק׳)</span><input type="number" min={0} inputMode="numeric" value={totalRaw} onChange={(e) => setTotalRaw(e.target.value)} placeholder="לא ידוע" aria-label="זמן כולל בדקות" /></label>
+                  <label className="field"><span>זמן עבודה (דק׳)</span><input type="number" min={0} inputMode="numeric" value={activeRaw} onChange={(e) => setActiveRaw(e.target.value)} placeholder="לא ידוע" aria-label="זמן עבודה בדקות" /></label>
+                </div>
+              )}
               <div className="actions">
                 {intent === 'ate' ? (
                   <>

@@ -1,5 +1,7 @@
 import { FOOD_BY_ID } from '../data/foods'
 import type { PlannedMeal, Recipe, ShoppingLine } from '../types'
+import { servingDivisor } from './nutrition'
+import { isPlannable } from './recipeBook'
 
 /**
  * המרה ממשקל מבושל במתכון לכמות שקונים. מקדמי בישול כלליים ומסומנים כהנחה:
@@ -25,10 +27,14 @@ export function generateShopping(plan: PlannedMeal[], recipes: Recipe[], pantry:
     if (p.status !== 'planned') continue
     const r = recipes.find((x) => x.id === p.recipeId)
     if (!r || r.kind !== 'home') continue
+    // מתכון בלי רכיבים וכמויות מספיקים לא יוצר רשימת מצרכים מומצאת
+    if (!isPlannable(r)) continue
+    // cookServings: כמה מנות מבשלים בפועל (מתכון מהספר); אחרת מנה אחת × multiplier
+    const portions = p.cookServings ?? p.multiplier
     for (const it of r.items) {
       const conv = BUY_AS[it.foodId]
       const id = conv ? conv.foodId : it.foodId
-      const g = it.grams * p.multiplier * (conv ? conv.factor : 1)
+      const g = (it.grams / servingDivisor(r)) * portions * (conv ? conv.factor : 1)
       need.set(id, (need.get(id) ?? 0) + g)
     }
   }

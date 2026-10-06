@@ -5,6 +5,7 @@ import { calcRecipe } from './engine/nutrition'
 import type { DraftLine } from './engine/parse'
 import { generateWeek } from './engine/plan'
 import { replacePlannedState } from './engine/meal'
+import { previewPlan } from './engine/bookPlan'
 import { resolveMergeConflict } from './engine/sync'
 import type { RankContext } from './engine/swaps'
 import type { AppState, GoalVersion, LogEntry, LogItemSnapshot, PlannedMeal, Pref, Profile, Recipe, SlotId } from './types'
@@ -242,6 +243,10 @@ export function useAppState() {
     setPref(id: string, pref: Pref) {
       update((s) => resolveMergeConflict(s, 'prefs', id, pref))
     },
+    /** ״שמור למועדפים״: סימון מפורש, לא משנה את העדפת הטעם */
+    setFavorite(id: string, on: boolean) {
+      update((s) => ({ ...s, favorites: { ...(s.favorites ?? {}), [id]: { on, at: now().toISOString() } } }))
+    },
     toggleAlwaysGood(id: string) {
       update((s) => {
         const has = s.alwaysGood.includes(id)
@@ -291,6 +296,19 @@ export function useAppState() {
     },
     removeIdea(text: string) {
       update((s) => ({ ...s, ideas: s.ideas.filter((i) => i !== text) }))
+    },
+    /** מתכון מספר המתכונים: לא משנה העדפות, ומקבל חותמת עדכון למיזוג בין מכשירים */
+    saveBookRecipe(r: Recipe) {
+      const stamped: Recipe = { ...r, origin: 'book', custom: true, updatedAt: now().toISOString() }
+      update((s) => ({ ...s, customRecipes: [...s.customRecipes.filter((x) => x.id !== r.id), stamped] }))
+    },
+    /** הסרה מהספר: מסומן archived ולא נמחק, כדי שיומן ותכנון קיימים לא יישברו ושמיזוג לא יחזיר אותו */
+    archiveRecipe(id: string) {
+      update((s) => ({ ...s, customRecipes: s.customRecipes.map((x) => (x.id === id ? { ...x, archived: true, updatedAt: now().toISOString() } : x)) }))
+    },
+    /** שיבוץ + עדכון רשימת הקניות בפעולה אחת; מחושב מחדש על המצב העדכני ברגע האישור */
+    planFromBook(date: string, slot: SlotId, recipeId: string, cookServings: number) {
+      update((s) => previewPlan(s, allRecipes(s), date, slot, recipeId, cookServings).next)
     },
     saveCustomRecipe(r: Recipe) {
       update((s) => ({ ...s, customRecipes: [...s.customRecipes.filter((x) => x.id !== r.id), r], prefs: { ...s.prefs, [r.id]: 'love' } }))

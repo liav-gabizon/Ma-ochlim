@@ -7,33 +7,37 @@ import { allRecipes, type Actions } from '../store'
 import type { AppState, Pref, Recipe, SlotId } from '../types'
 import { SLOTS } from '../types'
 import { Certainty, EFFORT_LABEL, Kcal, KosherUnverified, proteinText, Sheet, timeText } from './common'
+import { BookRecipeSheet, RecipeBook } from './RecipeBook'
+import { isFavorite } from '../engine/recipeBook'
 
-type Seg = 'fav' | 'home' | 'outside' | 'db'
+// ״ספר מתכונים״ מחליף את ״בבית״ (אותם מתכוני בית + מתכונים אישיים)
+type Seg = 'fav' | 'book' | 'outside' | 'db'
 const PREF_LABEL: Record<Pref, string> = { love: 'אוהב', try: 'מוכן לנסות', dislike: 'לא אוהב', unknown: 'לא ידוע' }
 
-export function FoodTab({ state, actions, today }: { state: AppState; actions: Actions; today: string }) {
+export function FoodTab({ state, actions, today, openNoEnergy }: { state: AppState; actions: Actions; today: string; openNoEnergy: () => void }) {
   const [seg, setSeg] = useState<Seg>('fav')
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<Recipe | null>(null)
-  const recipes = allRecipes(state)
+  const recipes = allRecipes(state).filter((r) => !r.archived)
   const match = (name: string) => !q.trim() || name.includes(q.trim())
 
   let list: Recipe[] = []
-  if (seg === 'fav') list = recipes.filter((r) => state.alwaysGood.includes(r.id) || r.custom || r.backup)
-  if (seg === 'home') list = recipes.filter((r) => r.kind === 'home')
+  if (seg === 'fav') list = recipes.filter((r) => isFavorite(state, r.id) || state.alwaysGood.includes(r.id) || r.custom || r.backup)
   if (seg === 'outside') list = recipes.filter((r) => r.kind === 'outside')
   list = list.filter((r) => match(r.name))
 
   return (
     <div className="screen">
       <div className="chips" role="tablist">
-        {([['fav', 'מועדפים וגיבויים'], ['home', 'בבית'], ['outside', 'בחוץ'], ['db', 'מאגר']] as [Seg, string][]).map(([id, label]) => (
+        {([['fav', 'מועדפים וגיבויים'], ['book', 'ספר מתכונים'], ['outside', 'בחוץ'], ['db', 'מאגר']] as [Seg, string][]).map(([id, label]) => (
           <button key={id} role="tab" aria-selected={seg === id} className={`chip ${seg === id ? 'on' : ''}`} onClick={() => setSeg(id)}>{label}</button>
         ))}
       </div>
       <input className="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="חיפוש" aria-label="חיפוש" />
 
-      {seg === 'db' ? (
+      {seg === 'book' ? (
+        <RecipeBook state={state} actions={actions} today={today} q={q} openNoEnergy={openNoEnergy} />
+      ) : seg === 'db' ? (
         <ul className="db-list">
           {FOODS.filter((f) => match(f.name) || (f.aliases ?? []).some(match)).map((f) => (
             <li key={f.id} className="card soft">
@@ -67,7 +71,7 @@ export function FoodTab({ state, actions, today }: { state: AppState; actions: A
               <li key={r.id}>
                 <button className={`recipe-row ${blocked ? 'blocked' : ''}`} onClick={() => setOpen(r)}>
                   <span>
-                    <strong>{state.alwaysGood.includes(r.id) && '★ '}{r.name}</strong>
+                    <strong>{isFavorite(state, r.id) && '★ '}{r.name}</strong>
                     <span className="muted small">{timeText(r)} · {EFFORT_LABEL[r.effort]}{blocked && ' · לא מתאים לאילוצים'}</span>
                     {r.kind === 'outside' && <KosherUnverified />}
                   </span>
@@ -80,7 +84,10 @@ export function FoodTab({ state, actions, today }: { state: AppState; actions: A
         </ul>
       )}
 
-      {open && <RecipeSheet r={open} state={state} actions={actions} today={today} onClose={() => setOpen(null)} />}
+      {open && open.kind === 'home' && (
+        <BookRecipeSheet r={allRecipes(state).find((x) => x.id === open.id) ?? open} state={state} actions={actions} today={today} onEdit={() => setSeg('book')} onClose={() => setOpen(null)} />
+      )}
+      {open && open.kind !== 'home' && <RecipeSheet r={open} state={state} actions={actions} today={today} onClose={() => setOpen(null)} />}
     </div>
   )
 }

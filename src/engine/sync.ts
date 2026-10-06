@@ -1,5 +1,5 @@
 import { LOVED_FOODS, LOVED_RECIPES } from '../data/recipes'
-import type { AppState, LogEntry, MergeConflict, PlannedMeal, Pref } from '../types'
+import type { AppState, FavoriteMark, LogEntry, MergeConflict, PlannedMeal, Pref, Recipe } from '../types'
 
 // מיזוג בין מצב המכשיר למצב בחשבון. היומן מאוחד לפי מפתח ייחודי, כך שאותה ארוחה
 // לא נרשמת פעמיים גם אם דווחה בשני מכשירים או נשלחה שוב אחרי ניתוק.
@@ -10,7 +10,7 @@ export function hasUserData(s: AppState | null | undefined): boolean {
   const editedPrefs = Object.entries(s.prefs).some(([id, pref]) => pref !== (defaultLoved.has(id) ? 'love' : 'unknown'))
   return s.log.length > 0 || s.weights.length > 0 || s.customRecipes.length > 0 || s.ideas.length > 0 ||
     Object.keys(s.pantry).length > 0 || s.plan.some((p) => p.status !== 'planned' || p.reminderCancelled) || s.goals.length > 1 ||
-    editedPrefs || s.alwaysGood.length > 0 || Object.keys(s.shopping.bought).length > 0 || !!s.mergeConflicts?.length
+    editedPrefs || Object.keys(s.favorites ?? {}).length > 0 || s.alwaysGood.length > 0 || Object.keys(s.shopping.bought).length > 0 || !!s.mergeConflicts?.length
 }
 
 export function mergeLogs(a: LogEntry[], b: LogEntry[]): LogEntry[] {
@@ -48,7 +48,27 @@ function mergePlan(local: PlannedMeal[], remote: PlannedMeal[]): PlannedMeal[] {
 }
 
 /** local הוא המצב שהמשתמש ערך עכשיו; remote הוא מה שבחשבון */
-export function mergeStates(local: AppState, remote: AppState): AppState {
+/** המצב האחרון שהמכשיר ידע שנמצא בחשבון; משמש לזיהוי מי שינה מה */
+export type MergeBase = { prefs: AppState['prefs']; bought: AppState['shopping']['bought'] }
+
+export function baseOf(s: AppState): MergeBase {
+  return { prefs: { ...s.prefs }, bought: { ...s.shopping.bought } }
+}
+
+/**
+ * מיזוג תלת־כיווני לערך יחיד: אם רק צד אחד שינה מאז הבסיס, השינוי שלו נשמר בלי התנגשות.
+ * מחזיר null כשאין בסיס או כששני הצדדים שינו לערכים שונים.
+ */
+function threeWay<T>(l: T | undefined, r: T | undefined, base: Record<string, T> | undefined, key: string): T | undefined | null {
+  if (l === r) return l
+  if (!base) return null
+  const b = base[key]
+  if (l === b) return r
+  if (r === b) return l
+  return null
+}
+
+export function mergeStates(local: AppState, remote: AppState, base?: MergeBase): AppState {
   const goals = [...remote.goals, ...local.goals].filter((g, i, arr) => arr.findIndex((x) => x.setAt === g.setAt && x.kcal === g.kcal) === i)
   const weights = [...remote.weights.filter((w) => !local.weights.some((l) => l.date === w.date)), ...local.weights]
   const prefs: AppState['prefs'] = {}
@@ -61,6 +81,8 @@ export function mergeStates(local: AppState, remote: AppState): AppState {
   const prefKeys = new Set([...Object.keys(remote.prefs), ...Object.keys(local.prefs), ...prior.filter((c) => c.field === 'prefs').map((c) => c.key)])
   for (const key of [...prefKeys].sort()) {
     const alternatives = prior.flatMap((c) => c.field === 'prefs' && c.key === key ? c.values : [])
+    const single = alternatives.length ? null : threeWay(local.prefs[key], remote.prefs[key], base?.prefs, key)
+    if (single !== null) { if (single !== undefined) prefs[key] = single; continue }
     const candidates = new Set([...alternatives, remote.prefs[key], local.prefs[key]])
     const values = preferenceOrder.filter((v) => candidates.has(v))
     prefs[key] = values[0]
@@ -69,6 +91,8 @@ export function mergeStates(local: AppState, remote: AppState): AppState {
   const boughtKeys = new Set([...Object.keys(remote.shopping.bought), ...Object.keys(local.shopping.bought), ...prior.filter((c) => c.field === 'shopping.bought').map((c) => c.key)])
   for (const key of [...boughtKeys].sort()) {
     const alternatives = prior.flatMap((c) => c.field === 'shopping.bought' && c.key === key ? c.values : [])
+    const single = alternatives.length ? null : threeWay(local.shopping.bought[key], remote.shopping.bought[key], base?.bought, key)
+    if (single !== null) { if (single !== undefined) bought[key] = single; continue }
     const candidates = new Set([...alternatives, remote.shopping.bought[key], local.shopping.bought[key]])
     const values = [false, true].filter((v) => candidates.has(v))
     bought[key] = values[0]
@@ -85,12 +109,38 @@ export function mergeStates(local: AppState, remote: AppState): AppState {
     mergeConflicts,
     log: mergeLogs(remote.log, local.log),
     plan: mergePlan(local.plan, remote.plan),
-    customRecipes: [...remote.customRecipes.filter((r) => !local.customRecipes.some((l) => l.id === r.id)), ...local.customRecipes],
+    customRecipes: mergeRecipes(local.customRecipes, remote.customRecipes),
+    favorites: mergeFavorites(local.favorites, remote.favorites),
     ideas: [...new Set([...local.ideas, ...remote.ideas])].slice(0, 20),
     pantry: { ...remote.pantry, ...local.pantry },
     dayComplete: { ...remote.dayComplete, ...local.dayComplete },
     sent: [...remote.sent, ...local.sent].filter((s, i, arr) => arr.findIndex((x) => x.key === s.key) === i).slice(-60),
   }
+}
+
+/**
+ * מתכונים אישיים: איחוד לפי מזהה, כך שמתכון שקיים רק בצד אחד לא נעלם.
+ * כששני הצדדים ערכו את אותו מתכון, הגרסה עם updatedAt מאוחר יותר גוברת (כולל הסרה מהספר);
+ * בלי חותמת בשני הצדדים נשמרת ההתנהגות הקודמת: המכשיר גובר.
+ */
+export function mergeRecipes(local: Recipe[], remote: Recipe[]): Recipe[] {
+  const out = new Map<string, Recipe>()
+  for (const r of remote) out.set(r.id, r)
+  for (const l of local) {
+    const r = out.get(l.id)
+    if (!r || (l.updatedAt ?? '') >= (r.updatedAt ?? '')) out.set(l.id, l)
+  }
+  return [...out.values()]
+}
+
+/** מועדפים: לכל פריט נשמר הסימון האחרון לפי חותמת, כך שהוספה והסרה בשני מכשירים לא אובדות */
+export function mergeFavorites(local: Record<string, FavoriteMark> | undefined, remote: Record<string, FavoriteMark> | undefined): Record<string, FavoriteMark> {
+  const out: Record<string, FavoriteMark> = { ...(remote ?? {}) }
+  for (const [id, l] of Object.entries(local ?? {})) {
+    const r = out[id]
+    if (!r || l.at >= r.at) out[id] = l
+  }
+  return out
 }
 
 /** בחירה מפורשת פותרת רק את ההתנגשות המתאימה; שאר החלופות נשמרות. */

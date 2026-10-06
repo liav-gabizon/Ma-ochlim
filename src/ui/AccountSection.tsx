@@ -16,9 +16,13 @@ const STATUS_TEXT: Record<CloudApi['status'], string> = {
   choose: 'צריך לבחור אילו נתונים לשמור',
 }
 
-export function SyncChip({ status }: { status: CloudApi['status'] }) {
+export function SyncChip({ status, onRefresh }: { status: CloudApi['status']; onRefresh?: () => void }) {
   if (status === 'disabled') return null
   const label = { signedOut: 'במכשיר בלבד', syncing: 'שומר…', saved: '☁︎ נשמר', pending: 'ממתין', offline: 'אין רשת', error: 'לא נשמר', choose: 'נדרשת בחירה' }[status]
+  // מחובר: לחיצה על הסטטוס מרעננת מהחשבון (שולחת קודם שינויים מקומיים)
+  if (onRefresh && status !== 'signedOut' && status !== 'choose') {
+    return <button className={`sync-chip s-${status}`} role="status" onClick={onRefresh} disabled={status === 'syncing'} aria-label={`${label}. רענון מהחשבון`}>{label} ↻</button>
+  }
   return <span className={`sync-chip s-${status}`} role="status">{label}</span>
 }
 
@@ -121,6 +125,7 @@ export function AccountSection({ state, actions, cloudApi }: { state: AppState; 
         <>
           <p className="small">מחובר כ־<bdi>{session.user.email}</bdi></p>
           <div className="actions">
+            <button className="btn" onClick={() => cloudApi.refresh()} disabled={busy}>רענן מהחשבון</button>
             <button className="btn" onClick={() => cloudApi.pushNow()} disabled={busy}>שמור עכשיו</button>
             <button className="btn ghost" onClick={() => cloudApi.signOut()}>התנתקות</button>
           </div>
