@@ -184,3 +184,5 @@ VERIFICATION: BLOCKED — approved gate, locked build dependencies and dedicated
 ### בדיקה מול השרת האמיתי: חסומה מהסביבה
 
 הקונטיינר לא מורשה לפנות ל־`fjsgstkuvqmyrqzsvjef.supabase.co`. בקשה כזו נחסמה קודם בבקרת ההרשאות האוטומטית, ומדיניות הרשת של הסביבה לא כוללת את הכתובת. גם ה־Preview עצמו מוגן ב־SSO של Vercel. לא עקפתי אף אחת מהחסימות. הבדיקה מול השרת האמיתי **לא בוצעה**.
+
+ניסיון נוסף, 6.10.2026 09:45 UTC (שרשור חדש, לפי `handoff-real-server-test.md`): `curl` ו־`fetch` ל־`https://fjsgstkuvqmyrqzsvjef.supabase.co/auth/v1/health` נענו ב־403 מה־proxy של הסביבה (`x-deny-reason: Host not in allowlist`). זו תשובה של הסביבה, לא של Supabase, ולכן אינה ראיה לבידוד. לא נוצרו חשבונות, לא נקראו ולא נכתבו נתונים. הוכנה ערכת בדיקה מוכנה להרצה ב־`docs/recipe-book-stage3/real-server/` (הרשמה, סנכרון בשני דפדפנים, בידוד ב־REST, ניקוי); היא מזהה חסימת סביבה ומסמנת אותה ״לא נבדק״. **STATUS: עדיין לא בוצע.**
