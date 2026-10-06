@@ -85,7 +85,7 @@ export default function App() {
           {state.profile.personalLine && <p className="tagline">{state.profile.personalLine}</p>}
         </div>
         <div className="top-actions">
-          <SyncChip status={cloudApi.status} />
+          <SyncChip status={cloudApi.status} onRefresh={cloudApi.session ? () => void cloudApi.refresh() : undefined} />
           <button className="icon-btn" onClick={() => setOverlay({ kind: 'settings' })} aria-label="פרופיל והגדרות">⚙︎</button>
         </div>
       </header>

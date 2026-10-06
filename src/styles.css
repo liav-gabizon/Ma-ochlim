@@ -245,3 +245,4 @@ fieldset.field legend { padding: 0; margin-bottom: 6px; }
 .diff li { padding: 2px 0; }
 .draft-line .inline input { width: 80px; }
 .range .field { flex-direction: column; align-items: stretch; margin: 0; }
+button.sync-chip { border: 0; cursor: pointer; font: inherit; font-size: 0.78rem; min-height: 32px; }

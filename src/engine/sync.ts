@@ -48,7 +48,27 @@ function mergePlan(local: PlannedMeal[], remote: PlannedMeal[]): PlannedMeal[] {
 }
 
 /** local הוא המצב שהמשתמש ערך עכשיו; remote הוא מה שבחשבון */
-export function mergeStates(local: AppState, remote: AppState): AppState {
+/** המצב האחרון שהמכשיר ידע שנמצא בחשבון; משמש לזיהוי מי שינה מה */
+export type MergeBase = { prefs: AppState['prefs']; bought: AppState['shopping']['bought'] }
+
+export function baseOf(s: AppState): MergeBase {
+  return { prefs: { ...s.prefs }, bought: { ...s.shopping.bought } }
+}
+
+/**
+ * מיזוג תלת־כיווני לערך יחיד: אם רק צד אחד שינה מאז הבסיס, השינוי שלו נשמר בלי התנגשות.
+ * מחזיר null כשאין בסיס או כששני הצדדים שינו לערכים שונים.
+ */
+function threeWay<T>(l: T | undefined, r: T | undefined, base: Record<string, T> | undefined, key: string): T | undefined | null {
+  if (l === r) return l
+  if (!base) return null
+  const b = base[key]
+  if (l === b) return r
+  if (r === b) return l
+  return null
+}
+
+export function mergeStates(local: AppState, remote: AppState, base?: MergeBase): AppState {
   const goals = [...remote.goals, ...local.goals].filter((g, i, arr) => arr.findIndex((x) => x.setAt === g.setAt && x.kcal === g.kcal) === i)
   const weights = [...remote.weights.filter((w) => !local.weights.some((l) => l.date === w.date)), ...local.weights]
   const prefs: AppState['prefs'] = {}
@@ -61,6 +81,8 @@ export function mergeStates(local: AppState, remote: AppState): AppState {
   const prefKeys = new Set([...Object.keys(remote.prefs), ...Object.keys(local.prefs), ...prior.filter((c) => c.field === 'prefs').map((c) => c.key)])
   for (const key of [...prefKeys].sort()) {
     const alternatives = prior.flatMap((c) => c.field === 'prefs' && c.key === key ? c.values : [])
+    const single = alternatives.length ? null : threeWay(local.prefs[key], remote.prefs[key], base?.prefs, key)
+    if (single !== null) { if (single !== undefined) prefs[key] = single; continue }
     const candidates = new Set([...alternatives, remote.prefs[key], local.prefs[key]])
     const values = preferenceOrder.filter((v) => candidates.has(v))
     prefs[key] = values[0]
@@ -69,6 +91,8 @@ export function mergeStates(local: AppState, remote: AppState): AppState {
   const boughtKeys = new Set([...Object.keys(remote.shopping.bought), ...Object.keys(local.shopping.bought), ...prior.filter((c) => c.field === 'shopping.bought').map((c) => c.key)])
   for (const key of [...boughtKeys].sort()) {
     const alternatives = prior.flatMap((c) => c.field === 'shopping.bought' && c.key === key ? c.values : [])
+    const single = alternatives.length ? null : threeWay(local.shopping.bought[key], remote.shopping.bought[key], base?.bought, key)
+    if (single !== null) { if (single !== undefined) bought[key] = single; continue }
     const candidates = new Set([...alternatives, remote.shopping.bought[key], local.shopping.bought[key]])
     const values = [false, true].filter((v) => candidates.has(v))
     bought[key] = values[0]

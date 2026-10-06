@@ -1,7 +1,7 @@
 import type { Session } from '@supabase/supabase-js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cloud, fetchRemote, saveRemote, type RemoteState } from './cloud'
-import { hasUserData, mergeStates } from './engine/sync'
+import { baseOf, hasUserData, mergeStates, type MergeBase } from './engine/sync'
 import type { AppState } from './types'
 
 export type SyncStatus = 'disabled' | 'signedOut' | 'syncing' | 'saved' | 'pending' | 'offline' | 'error' | 'choose'
@@ -22,6 +22,33 @@ const writeVersion = (uid: string, v: number | null) => {
   } catch { /* אחסון חסום */ }
 }
 
+// בסיס המיזוג: העדפות וסימוני קנייה כפי שהיו בחשבון בסנכרון האחרון.
+// בזכותו שינוי בצד אחד בלבד לא מוצג כהתנגשות.
+const BKEY = (uid: string) => `ma-ochlim:cloud-base:${uid}`
+const readBase = (uid: string): MergeBase | undefined => {
+  try {
+    const v = localStorage.getItem(BKEY(uid))
+    return v ? (JSON.parse(v) as MergeBase) : undefined
+  } catch {
+    return undefined
+  }
+}
+const writeBase = (uid: string, s: AppState | null) => {
+  try {
+    if (s == null) localStorage.removeItem(BKEY(uid))
+    else localStorage.setItem(BKEY(uid), JSON.stringify(baseOf(s)))
+  } catch { /* אחסון חסום */ }
+}
+
+/** אותו תוכן (בלי שמות המנות שנוספים לחשבון לנוסח ההתראה) */
+function sameContent(a: AppState, b: AppState): boolean {
+  const canon = (v: unknown): unknown =>
+    Array.isArray(v) ? v.map(canon) : v && typeof v === 'object'
+      ? Object.fromEntries(Object.keys(v).filter((k) => k !== 'recipeNames').sort().map((k) => [k, canon((v as Record<string, unknown>)[k])]))
+      : v
+  return JSON.stringify(canon(a)) === JSON.stringify(canon(b))
+}
+
 /**
  * סנכרון בין המכשיר לחשבון. המכשיר נשאר מקור העבודה (עובד גם בלי רשת),
  * וכל שינוי נשלח לחשבון עם בדיקת גרסה. בהתנגשות ממזגים ולא דורסים.
@@ -38,6 +65,13 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
   const stateRef = useRef(state)
   stateRef.current = state
   const saving = useRef(false)
+  const pulling = useRef(false)
+
+  /** החלפת המצב אחרי מיזוג. אם התוצאה זהה לחשבון, לא שולחים אותה שוב (מונע לולאת שמירה). */
+  const adoptMerged = useCallback((merged: AppState, remote: RemoteState) => {
+    if (sameContent(merged, remote.state)) synced.current = JSON.stringify(merged)
+    replaceState(merged)
+  }, [replaceState])
 
   useEffect(() => {
     if (!cloud) return
@@ -60,16 +94,19 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
       if (r.ok) {
         version.current = r.version
         writeVersion(uid, r.version)
+        writeBase(uid, current)
         synced.current = json
         setSavedAt(new Date().toISOString())
         setLastError(null)
         setStatus(JSON.stringify(stateRef.current) === json ? 'saved' : 'pending')
       } else if (r.conflict) {
         // מכשיר אחר שמר בינתיים: ממזגים ושומרים שוב
+        const merged = mergeStates(stateRef.current, r.remote.state, readBase(uid))
         version.current = r.remote.version
         writeVersion(uid, r.remote.version)
-        replaceState(mergeStates(stateRef.current, r.remote.state))
-        setStatus('pending')
+        writeBase(uid, r.remote.state)
+        adoptMerged(merged, r.remote)
+        setStatus(sameContent(merged, r.remote.state) ? 'saved' : 'pending')
       } else {
         setLastError(r.error)
         setStatus('error')
@@ -80,7 +117,30 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
     } finally {
       saving.current = false
     }
-  }, [session, replaceState])
+  }, [session, adoptMerged])
+
+  /** משיכת שינויים ממכשיר אחר: בחזרה לאפליקציה או בלחיצה על רענון. שינויים מקומיים שלא נשלחו נשמרים במיזוג. */
+  const pull = useCallback(async () => {
+    const uid = session?.user.id
+    if (!uid || !ready.current || saving.current || pulling.current || !navigator.onLine) return
+    pulling.current = true
+    try {
+      const remote = await fetchRemote(uid)
+      if (!remote || remote.version === version.current || saving.current) return
+      const merged = mergeStates(stateRef.current, remote.state, readBase(uid))
+      version.current = remote.version
+      writeVersion(uid, remote.version)
+      writeBase(uid, remote.state)
+      adoptMerged(merged, remote)
+      setSavedAt(new Date().toISOString())
+      setStatus(sameContent(merged, remote.state) ? 'saved' : 'pending')
+    } catch (e) {
+      setLastError(String(e))
+      setStatus(navigator.onLine ? 'error' : 'offline')
+    } finally {
+      pulling.current = false
+    }
+  }, [session, adoptMerged])
 
   // סנכרון ראשון אחרי התחברות
   useEffect(() => {
@@ -103,12 +163,15 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
         } else if (!hasUserData(local)) {
           version.current = remote.version
           synced.current = JSON.stringify(remote.state)
+          writeBase(uid, remote.state)
           replaceState(remote.state)
           replaced = true
         } else if (known != null) {
           // אותו חשבון כבר סונכרן במכשיר הזה: ממזגים שינויים שלא נשלחו
           version.current = remote.version
-          replaceState(mergeStates(local, remote.state))
+          const merged = mergeStates(local, remote.state, readBase(uid))
+          writeBase(uid, remote.state)
+          adoptMerged(merged, remote)
           replaced = true
         } else if (!hasUserData(remote.state)) {
           version.current = remote.version
@@ -146,6 +209,16 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
     return () => { window.removeEventListener('online', on); clearInterval(id) }
   }, [push])
 
+  // חזרה לאפליקציה (מעבר לשונית, פתיחה מחדש באייפון): קודם שולחים שינויים מקומיים, אחר כך מושכים
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') void push().then(pull) }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('pageshow', onVisible)
+    return () => { document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('pageshow', onVisible) }
+  }, [push, pull])
+
+  const refresh = useCallback(async () => { await push(); await pull() }, [push, pull])
+
   const resolveChoice = useCallback(async (pick: 'device' | 'account' | 'merge') => {
     if (!choice || !session) return
     const uid = session.user.id
@@ -155,6 +228,7 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
     } else if (pick === 'merge') {
       replaceState(mergeStates(stateRef.current, choice.state))
     }
+    writeBase(uid, choice.state)
     version.current = choice.version
     writeVersion(uid, choice.version)
     setChoice(null)
@@ -163,11 +237,11 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
   }, [choice, session, replaceState, push])
 
   const signOut = useCallback(async () => {
-    if (session) writeVersion(session.user.id, null)
+    if (session) { writeVersion(session.user.id, null); writeBase(session.user.id, null) }
     await cloud?.auth.signOut()
   }, [session])
 
-  return { session, status, choice, resolveChoice, lastError, savedAt, signOut, pushNow: push }
+  return { session, status, choice, resolveChoice, lastError, savedAt, signOut, pushNow: push, refresh }
 }
 
 export type CloudApi = ReturnType<typeof useCloudSync>

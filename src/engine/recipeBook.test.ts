@@ -9,7 +9,7 @@ import {
 } from './recipeBook'
 import { generateShopping } from './shopping'
 import { suggestSwaps } from './swaps'
-import { hasUserData, mergeFavorites, mergeRecipes, mergeStates } from './sync'
+import { baseOf, hasUserData, mergeFavorites, mergeRecipes, mergeStates } from './sync'
 
 const NOW = new Date('2026-10-05T08:00:00Z')
 const TODAY = '2026-10-05'
@@ -241,5 +241,55 @@ describe('זמן במתכון מ״+ אוכל״', () => {
   })
   it('ארוחות מובנות שומרות את הזמן הקיים', () => {
     for (const r of RECIPES.filter((x) => x.kind === 'home')) expect(timeKnown(r)).toBe(true)
+  })
+})
+
+describe('regression: שינוי העדפה בצד אחד בלבד אינו התנגשות', () => {
+  const base0 = state()
+  const base = baseOf(base0)
+  it('רק החשבון שינה ל״לא לטעמי״: המכשיר מקבל את השינוי בלי התנגשות', () => {
+    const remote = state({ prefs: { ...base0.prefs, cheese_toast: 'dislike' } })
+    const local = state({ prefs: { ...base0.prefs } }) // ערך ישן, לא שונה במכשיר
+    const m = mergeStates(local, remote, base)
+    expect(m.prefs.cheese_toast).toBe('dislike')
+    expect(m.mergeConflicts).toEqual([])
+  })
+  it('רק המכשיר שינה: השינוי המקומי נשמר בלי התנגשות', () => {
+    const local = state({ prefs: { ...base0.prefs, cheese_toast: 'dislike', egg_sandwich: 'try' } })
+    const m = mergeStates(local, state(), base)
+    expect(m.prefs.cheese_toast).toBe('dislike')
+    expect(m.prefs.egg_sandwich).toBe('try')
+    expect(m.mergeConflicts).toEqual([])
+  })
+  it('שני הצדדים שינו את אותה העדפה לערכים סותרים: התנגשות', () => {
+    const local = state({ prefs: { ...base0.prefs, cheese_toast: 'try' } })
+    const remote = state({ prefs: { ...base0.prefs, cheese_toast: 'dislike' } })
+    const m = mergeStates(local, remote, base)
+    expect(m.mergeConflicts).toEqual([{ field: 'prefs', key: 'cheese_toast', values: ['dislike', 'try'] }])
+    expect(m.prefs.cheese_toast).toBe('dislike')
+  })
+  it('שני הצדדים שינו לאותו ערך: אין התנגשות', () => {
+    const p = { ...base0.prefs, cheese_toast: 'dislike' as const }
+    expect(mergeStates(state({ prefs: p }), state({ prefs: p }), base).mergeConflicts).toEqual([])
+  })
+  it('שינויים שונים בפריטים שונים משני הצדדים נשמרים יחד', () => {
+    const local = state({ prefs: { ...base0.prefs, egg_sandwich: 'dislike' } })
+    const remote = state({ prefs: { ...base0.prefs, cheese_toast: 'try' } })
+    const m = mergeStates(local, remote, base)
+    expect([m.prefs.egg_sandwich, m.prefs.cheese_toast]).toEqual(['dislike', 'try'])
+    expect(m.mergeConflicts).toEqual([])
+  })
+  it('סימון ״נקנה״ בצד אחד בלבד: בלי התנגשות', () => {
+    const remote = state({ shopping: { confirmed: null, confirmedAt: null, bought: { egg: true } } })
+    const local = state({ shopping: { confirmed: null, confirmedAt: null, bought: { egg: false } } })
+    const b = { ...base, bought: { egg: false } }
+    const m = mergeStates(local, remote, b)
+    expect(m.shopping.bought.egg).toBe(true)
+    expect(m.mergeConflicts).toEqual([])
+  })
+  it('בלי בסיס (ייבוא קובץ, מכשיר חדש) נשמרת ההתנהגות הקודמת: מציגים לבחירה', () => {
+    const local = state({ prefs: { ...base0.prefs, cheese_toast: 'love' } })
+    const remote = state({ prefs: { ...base0.prefs, cheese_toast: 'dislike' } })
+    expect(mergeStates(local, remote).mergeConflicts!.length).toBe(1)
   })
 })
