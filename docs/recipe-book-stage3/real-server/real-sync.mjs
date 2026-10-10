@@ -1,7 +1,7 @@
 // שני דפדפנים מול Supabase האמיתי, שניהם מחוברים ל־test1 (שתי התחברויות נפרדות).
 // אותם תרחישים כמו sync2.mjs, בלי השרת המדומה. "השרת" כאן = השורה של test1 בלבד, נקראת עם ה־JWT שלו.
 // הרצה: בנייה של 27e7692 ב־vite preview על 4173, ואז node real-sync.mjs
-import { chromium, devices } from '/opt/node-tools/node_modules/playwright/index.mjs'
+const { chromium, devices } = await import(process.env.PLAYWRIGHT_MJS || '/opt/node-tools/node_modules/playwright/index.mjs')
 import { login, loadCreds, ownRow, summary, REF } from './lib.mjs'
 const BASE = 'http://localhost:4173/'
 const results = []
@@ -113,6 +113,9 @@ for (const [n, s] of [['א׳', sa], ['ב׳', sb]]) {
   ok(`${n}: הסרת המועדף מב׳ נשמרה`, s.favorites?.[favId]?.on === false)
 }
 ok('שני המכשירים זהים בסוף', JSON.stringify(sa.customRecipes.sort((x, y) => x.id.localeCompare(y.id))) === JSON.stringify(sb.customRecipes.sort((x, y) => x.id.localeCompare(y.id))) && JSON.stringify(sa.favorites) === JSON.stringify(sb.favorites))
+// jsonb בשרת האמיתי לא שומר סדר מפתחות, ולכן ההשוואה הגולמית למעלה רגישה לסדר. כאן אותה השוואה בלי תלות בסדר.
+{ const srt = (s) => [...s.customRecipes].sort((x, y) => x.id.localeCompare(y.id))
+  ok('שני המכשירים זהים בסוף (בלי תלות בסדר מפתחות)', JSON.stringify(canon(srt(sa))) === JSON.stringify(canon(srt(sb))) && JSON.stringify(canon(sa.favorites)) === JSON.stringify(canon(sb.favorites))) }
 await goBook(A); await goBook(B)
 const la = await A.locator('.book').innerText(), lb = await B.locator('.book').innerText()
 ok('המסך בשני המכשירים לא מציג את מתכון ב', !la.includes('מתכון ב\n') && !lb.includes('מתכון ב\n') && !/מתכון ב(?! )/.test(la.replace('מתכון בלי', '')))
