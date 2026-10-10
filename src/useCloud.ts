@@ -157,6 +157,7 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
         const local = stateRef.current
         const known = readVersion(uid)
         let replaced = false
+        let upToDate = false // המצב שאומץ זהה לחשבון: אין מה לשלוח
         if (!remote) {
           // החשבון ריק: הנתונים מהמכשיר עוברים אליו
           version.current = null
@@ -166,6 +167,7 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
           writeBase(uid, remote.state)
           replaceState(remote.state)
           replaced = true
+          upToDate = true
         } else if (known != null) {
           // אותו חשבון כבר סונכרן במכשיר הזה: ממזגים שינויים שלא נשלחו
           version.current = remote.version
@@ -173,6 +175,7 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
           writeBase(uid, remote.state)
           adoptMerged(merged, remote)
           replaced = true
+          upToDate = sameContent(merged, remote.state)
         } else if (!hasUserData(remote.state)) {
           version.current = remote.version
         } else {
@@ -184,8 +187,11 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
         }
         writeVersion(uid, version.current)
         ready.current = true
-        // אחרי החלפת מצב השמירה תצא מאפקט השינוי, כשהמצב החדש כבר במסך
+        // אחרי החלפת מצב השמירה תצא מאפקט השינוי, כשהמצב החדש כבר במסך.
+        // כשאין מה לשלוח, אפקט השינוי לא ישנה את התווית, ולכן מעדכנים אותה כאן (אחרת נשארת ״שומר…״)
         if (!replaced) await push()
+        else if (upToDate && remote) { setSavedAt(remote.updated_at); setStatus('saved') }
+        else setStatus('pending')
       } catch (e) {
         setLastError(String(e))
         setStatus(navigator.onLine ? 'error' : 'offline')

@@ -55,6 +55,7 @@ const openCard = async (p, name) => {
   await row.click()
 }
 const book = async (p) => (await S(p)).customRecipes
+const chipIs = (p, text) => until(async () => (await p.locator('.sync-chip').first().innerText().catch(() => '')).includes(text))
 
 // 1. מכשיר א׳: יוצר מתכון ומועדף
 const A = await device('A')
@@ -66,6 +67,7 @@ ok('א׳ נשמר לחשבון', await synced(A), server.log.join(', '))
 // 2. מכשיר ב׳ (נקי) מקבל את הנתונים
 const B = await device('B')
 await until(async () => (await S(B))?.customRecipes?.length === 1)
+ok('ב׳ (מכשיר נקי): התווית ״נשמר״ אחרי משיכה בלי שינוי מקומי', await chipIs(B, 'נשמר'), await B.locator('.sync-chip').first().innerText().catch(() => ''))
 await goBook(B)
 const bText = await B.locator('.book').innerText()
 ok('ב׳ רואה את המתכון של א׳', bText.includes('מתכון א'))
@@ -104,6 +106,7 @@ await A.reload(); await B.reload()
 await until(async () => (await S(A)).customRecipes.length === 4 && (await S(B)).customRecipes.length === 4)
 await A.waitForTimeout(1500)
 const sa = await S(A), sb = await S(B)
+ok('אחרי רענון: התווית ״נשמר״ בשני המכשירים', (await chipIs(A, 'נשמר')) && (await chipIs(B, 'נשמר')), `${await A.locator('.sync-chip').first().innerText()} | ${await B.locator('.sync-chip').first().innerText()}`)
 for (const [n, s] of [['א׳', sa], ['ב׳', sb]]) {
   const ids = s.customRecipes.map((r) => r.id)
   ok(`${n}: אין כפילויות`, new Set(ids).size === ids.length, `${ids.length} מתכונים`)
