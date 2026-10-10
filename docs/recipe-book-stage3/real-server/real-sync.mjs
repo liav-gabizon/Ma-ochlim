@@ -112,10 +112,9 @@ for (const [n, s] of [['א׳', sa], ['ב׳', sb]]) {
   ok(`${n}: מתכון שנמחק לא חזר`, s.customRecipes.find((r) => r.name === 'מתכון ב')?.archived === true)
   ok(`${n}: הסרת המועדף מב׳ נשמרה`, s.favorites?.[favId]?.on === false)
 }
-ok('שני המכשירים זהים בסוף', JSON.stringify(sa.customRecipes.sort((x, y) => x.id.localeCompare(y.id))) === JSON.stringify(sb.customRecipes.sort((x, y) => x.id.localeCompare(y.id))) && JSON.stringify(sa.favorites) === JSON.stringify(sb.favorites))
-// jsonb בשרת האמיתי לא שומר סדר מפתחות, ולכן ההשוואה הגולמית למעלה רגישה לסדר. כאן אותה השוואה בלי תלות בסדר.
+// jsonb בשרת האמיתי לא שומר סדר מפתחות, ולכן ההשוואה היא של תוכן (canon), לא של JSON גולמי
 { const srt = (s) => [...s.customRecipes].sort((x, y) => x.id.localeCompare(y.id))
-  ok('שני המכשירים זהים בסוף (בלי תלות בסדר מפתחות)', JSON.stringify(canon(srt(sa))) === JSON.stringify(canon(srt(sb))) && JSON.stringify(canon(sa.favorites)) === JSON.stringify(canon(sb.favorites))) }
+  ok('שני המכשירים זהים בסוף', JSON.stringify(canon(srt(sa))) === JSON.stringify(canon(srt(sb))) && JSON.stringify(canon(sa.favorites)) === JSON.stringify(canon(sb.favorites))) }
 await goBook(A); await goBook(B)
 const la = await A.locator('.book').innerText(), lb = await B.locator('.book').innerText()
 ok('המסך בשני המכשירים לא מציג את מתכון ב', !la.includes('מתכון ב\n') && !lb.includes('מתכון ב\n') && !/מתכון ב(?! )/.test(la.replace('מתכון בלי', '')))
