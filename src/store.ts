@@ -309,7 +309,7 @@ export function useAppState() {
     },
     /** שיבוץ + עדכון רשימת הקניות בפעולה אחת; מחושב מחדש על המצב העדכני ברגע האישור */
     planFromBook(date: string, slot: SlotId, recipeId: string, cookServings: number) {
-      update((s) => previewPlan(s, allRecipes(s), date, slot, recipeId, cookServings).next)
+      update((s) => previewPlan(s, allRecipes(s), date, slot, recipeId, cookServings, localDate(now(), s.profile.timezone)).next)
     },
     saveCustomRecipe(r: Recipe) {
       update((s) => ({ ...s, customRecipes: [...s.customRecipes.filter((x) => x.id !== r.id), r], prefs: { ...s.prefs, [r.id]: 'love' } }))

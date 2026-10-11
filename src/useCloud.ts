@@ -66,6 +66,10 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
   stateRef.current = state
   const saving = useRef(false)
   const pulling = useRef(false)
+  // החשבון הנוכחי, לבדיקה אחרי המתנה לרשת: תשובה שהגיעה אחרי החלפת חשבון לא נוגעת במצב של החשבון החדש
+  const uidRef = useRef<string | undefined>(session?.user.id)
+  uidRef.current = session?.user.id
+  const pushRef = useRef<() => void>(() => {})
 
   /** החלפת המצב אחרי מיזוג. אם התוצאה זהה לחשבון, לא שולחים אותה שוב (מונע לולאת שמירה). */
   const adoptMerged = useCallback((merged: AppState, remote: RemoteState) => {
@@ -91,6 +95,7 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
     setStatus('syncing')
     try {
       const r = await saveRemote(uid, current, version.current)
+      if (uidRef.current !== uid) return
       if (r.ok) {
         version.current = r.version
         writeVersion(uid, r.version)
@@ -98,7 +103,10 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
         synced.current = json
         setSavedAt(new Date().toISOString())
         setLastError(null)
-        setStatus(JSON.stringify(stateRef.current) === json ? 'saved' : 'pending')
+        const changedMeanwhile = JSON.stringify(stateRef.current) !== json
+        setStatus(changedMeanwhile ? 'pending' : 'saved')
+        // שינוי שנעשה בזמן השמירה: הטיימר שלו כבר ירה ונחסם, ולכן שולחים אותו עכשיו ולא מחכים לסבב של 15 שניות
+        if (changedMeanwhile) setTimeout(() => pushRef.current(), 800)
       } else if (r.conflict) {
         // מכשיר אחר שמר בינתיים: ממזגים ושומרים שוב
         const merged = mergeStates(stateRef.current, r.remote.state, readBase(uid))
@@ -118,6 +126,7 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
       saving.current = false
     }
   }, [session, adoptMerged])
+  pushRef.current = push
 
   /** משיכת שינויים ממכשיר אחר: בחזרה לאפליקציה או בלחיצה על רענון. שינויים מקומיים שלא נשלחו נשמרים במיזוג. */
   const pull = useCallback(async () => {
@@ -126,6 +135,7 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
     pulling.current = true
     try {
       const remote = await fetchRemote(uid)
+      if (uidRef.current !== uid) return
       // גרסה שכבר ידועה, או ישנה ממה שהמכשיר עצמו שמר בינתיים (שליחה שהסתיימה תוך כדי המשיכה): אין מה למזג
       if (!remote || (version.current != null && remote.version <= version.current) || saving.current) return
       const merged = mergeStates(stateRef.current, remote.state, readBase(uid))

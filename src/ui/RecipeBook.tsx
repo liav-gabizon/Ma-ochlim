@@ -312,7 +312,7 @@ function PlanSheet({ r, cook, state, actions, today, onDone, onCancel }: {
   const [date, setDate] = useState(today)
   const [slot, setSlot] = useState<SlotId>(slots[0] ?? 'evening')
   const recipes = allRecipes(state)
-  const preview = useMemo(() => previewPlan(state, recipes, date, slot, r.id, cook), [state, recipes, date, slot, r.id, cook])
+  const preview = useMemo(() => previewPlan(state, recipes, date, slot, r.id, cook, today), [state, recipes, date, slot, r.id, cook, today])
   const current = state.plan.find((m) => m.date === date && m.slot === slot)
   const currentName = current ? recipes.find((x) => x.id === current.recipeId)?.name : null
   const eaten = current && current.status !== 'planned' && current.status !== 'cooking'

@@ -194,16 +194,20 @@ export function validateImport(raw: unknown): AppState | null {
   const slots = ['morning', 'outside', 'evening'] as const
   if (!isObj(p.mealTimes) || !isObj(p.slotTargets) || !slots.every((k) => typeof p.mealTimes![k] === 'string' && typeof p.slotTargets![k] === 'number')) return null
   if (!s.goals.every((g) => isObj(g) && typeof g.kcal === 'number' && typeof g.effectiveFrom === 'string')) return null
-  if (!s.plan.every((m) => isObj(m) && typeof m.date === 'string' && typeof m.slot === 'string' && typeof m.recipeId === 'string')) return null
+  if (!s.plan.every((m) => isObj(m) && typeof m.date === 'string' && slots.includes(m.slot as (typeof slots)[number]) && typeof m.recipeId === 'string' && typeof m.multiplier === 'number')) return null
+  // רשומות שהמסכים קוראים מהן ישירות: מתכון אישי בלי רשימת רכיבים או רישום בלי פריטים היו מפילים את המסך אחרי הייבוא
+  const customRecipes = s.customRecipes === undefined ? [] : s.customRecipes
+  if (!Array.isArray(customRecipes) || !customRecipes.every((r) => isObj(r) && typeof r.id === 'string' && typeof r.name === 'string' && Array.isArray(r.items))) return null
+  if (!s.log.every((e) => isObj(e) && typeof e.idemKey === 'string' && typeof e.loggedAt === 'string' && Array.isArray(e.items))) return null
   const notifications = { enabled: false, timesConfirmed: false, quietStart: '23:00', quietEnd: '07:30', dailyCap: 6, followUp: false, snoozeMinutes: 15, genericLockText: true, ...(isObj(s.notifications) ? s.notifications : {}) }
   const shopping: Record<string, unknown> = isObj(s.shopping) ? s.shopping : {}
   return {
     ...s,
-    profile: { timezone: 'Asia/Jerusalem', allergies: 'unanswered', ...p } as AppState['profile'],
+    profile: { name: '', goal: 'gain', timezone: 'Asia/Jerusalem', allergies: 'unanswered', meatDairyWaitHours: null, tone: 'calm', motivationOn: true, personalLine: '', showWeightOnHome: false, heightCm: null, weightGoalKg: null, ...p } as AppState['profile'],
     prefs: isObj(s.prefs) ? s.prefs : {},
     rejections: isObj(s.rejections) ? s.rejections : {},
     alwaysGood: Array.isArray(s.alwaysGood) ? s.alwaysGood.filter((x) => typeof x === 'string') : [],
-    customRecipes: Array.isArray(s.customRecipes) ? s.customRecipes : [],
+    customRecipes,
     dayComplete: isObj(s.dayComplete) ? s.dayComplete : {},
     pantry: isObj(s.pantry) ? s.pantry : {},
     shopping: { confirmed: Array.isArray(shopping.confirmed) ? shopping.confirmed : null, confirmedAt: typeof shopping.confirmedAt === 'string' ? shopping.confirmedAt : null, bought: isObj(shopping.bought) ? shopping.bought : {} } as AppState['shopping'],

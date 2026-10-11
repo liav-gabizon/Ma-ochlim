@@ -24,9 +24,9 @@ for (const f of files) {
 }
 const all = [...byId.values()].filter(x => x.title && x.url)
 all.sort((a,b)=> a.category===b.category ? a.title.localeCompare(b.title,'he') : (labels[a.category]||a.category).localeCompare(labels[b.category]||b.category,'he'))
-const esc = s => s.replace(/\\/g,'\\\\').replace(/'/g,"\\'")
+const esc = s => String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,' ')
 const lines = all.map(x => `  { title: '${esc(x.title)}', url: '${esc(x.url)}', category: '${esc(x.category)}' },`).join('\n')
-const labelLines = Object.entries(labels).map(([k,v])=>`  '${k}': '${v}',`).join('\n')
+const labelLines = Object.entries(labels).map(([k,v])=>`  '${esc(k)}': '${esc(v)}',`).join('\n')
 const out = `// קטלוג קישורים למתכונים באתר מאקו (mobile.mako.co.il/food-recipes), שם וקישור בלבד.
 // נאסף מ-20 עמודי הקטגוריות ב-11 באוקטובר 2026 דרך דפדפן. בלי הוראות הכנה, תמונות או נתוני תזונה.
 // זהו תצלום־רגע של המתכונים שהופיעו בראש כל קטגוריה; הארכיון המלא של מאקו גדול יותר ומתעדכן.

@@ -289,6 +289,14 @@ describe('סנכרון ומיזוג', () => {
     expect(validateImport({ ...minimal, goals: [] })).toBeNull()
     expect(validateImport({ ...minimal, profile: { ...s.profile, mealTimes: undefined } })).toBeNull()
     expect(validateImport({ ...minimal, plan: [{ date: '2026-10-04' }] })).toBeNull()
+    // רשומות שהיו מפילות את המסך אחרי הייבוא נדחות: מתכון בלי רכיבים, רישום בלי פריטים, משבצת לא מוכרת
+    expect(validateImport({ ...minimal, customRecipes: [{ id: 'x', name: 'y' }] })).toBeNull()
+    expect(validateImport({ ...minimal, log: [{ id: '1', idemKey: 'k', loggedAt: '2026-10-04T08:00:00Z' }] })).toBeNull()
+    expect(validateImport({ ...minimal, plan: [{ ...s.plan[0], slot: 'brunch' }] })).toBeNull()
+    // פרופיל חלקי מקבל את שדות הפרופיל החסרים ולא נשאר בלי טון ומשפט אישי
+    const partialProfile = validateImport({ ...minimal, profile: { mealTimes: s.profile.mealTimes, slotTargets: s.profile.slotTargets } })!
+    expect(partialProfile.profile.tone).toBe('calm')
+    expect(partialProfile.profile.timezone).toBe('Asia/Jerusalem')
   })
   it('איפוס רשימת קניות במכשיר אחד פותר התנגשות ״נקנה״ ולא מחזיר אותה במיזוג הבא', () => {
     const a = initialState(new Date('2026-10-04T08:00:00Z'))

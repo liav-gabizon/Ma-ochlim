@@ -1,5 +1,6 @@
 import type { AppState, Recipe, ShoppingLine, SlotId } from '../types'
 import { checkRecipe } from './constraints'
+import { addDays } from './dates'
 import { replacePlannedState } from './meal'
 import { fitsWithin, isPlannable } from './recipeBook'
 import { diffShopping, generateShopping, type ShoppingDiff } from './shopping'
@@ -41,11 +42,13 @@ export interface PlanPreview {
  * הרשימה המאושרת מתעדכנת רק בהפרש שנובע מהשיבוץ (לא שינויים אחרים שממתינים),
  * וסימוני ״נקנה״ נשמרים כי הם לפי מזהה מצרך.
  */
-export function previewPlan(state: AppState, recipes: Recipe[], date: string, slot: SlotId, recipeId: string, cookServings: number): PlanPreview {
-  const before = generateShopping(state.plan, recipes, state.pantry)
+export function previewPlan(state: AppState, recipes: Recipe[], date: string, slot: SlotId, recipeId: string, cookServings: number, today?: string): PlanPreview {
+  // אותו חלון של שבעה ימים שלשונית הקניות מחשבת ממנו את הרשימה: ארוחות עבר שלא דווחו וימים רחוקים לא נכנסים להפרש
+  const inWindow = (m: { date: string }) => !today || (m.date >= today && m.date <= addDays(today, 6))
+  const before = generateShopping(state.plan.filter(inWindow), recipes, state.pantry)
   const replaced = replacePlannedState(state, date, slot, recipeId, 1, false)
   const plan = replaced.plan.map((m) => (m.date === date && m.slot === slot ? { ...m, cookServings } : m))
-  const after = generateShopping(plan, recipes, state.pantry)
+  const after = generateShopping(plan.filter(inWindow), recipes, state.pantry)
   const diff = diffShopping(before.toBuy, after.toBuy)
   const confirmed = state.shopping.confirmed
   const nextConfirmed = confirmed ? applyDiff(confirmed, diff) : null

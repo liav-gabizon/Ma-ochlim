@@ -171,6 +171,17 @@ describe('ספר מתכונים: שיבוץ + קניות כפעולה אחת', (
     const line = p.next.shopping.confirmed!.find((l) => l.foodId === changed.to.foodId)
     expect(line?.neededGrams).toBe(changed.to.neededGrams)
   })
+  it('ההפרש לקניות מחושב על אותו חלון של שבעה ימים כמו לשונית הקניות, בלי ארוחות עבר שלא דווחו', () => {
+    const r = book()
+    const base = state({ customRecipes: [r] })
+    const recipes = [...RECIPES, r]
+    // ארוחה מאתמול שנשארה ״מתוכננת״ ודורשת את אותו מצרך: היא לא חלק מרשימת השבוע
+    const stale = { date: '2026-10-04', slot: 'evening' as const, recipeId: r.id, multiplier: 1, status: 'planned' as const, cookServings: 4 }
+    const withStale: AppState = { ...base, plan: [stale, ...base.plan] }
+    const clean = previewPlan(base, recipes, TODAY, 'evening', r.id, 4, TODAY)
+    const p = previewPlan(withStale, recipes, TODAY, 'evening', r.id, 4, TODAY)
+    expect(p.diff).toEqual(clean.diff)
+  })
   it('בלי רשימה מאושרת: הרשימה נשארת לא מאושרת', () => {
     const r = book()
     const s0 = state({ customRecipes: [r] })
