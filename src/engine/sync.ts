@@ -49,10 +49,16 @@ function mergePlan(local: PlannedMeal[], remote: PlannedMeal[]): PlannedMeal[] {
 
 /** local הוא המצב שהמשתמש ערך עכשיו; remote הוא מה שבחשבון */
 /** המצב האחרון שהמכשיר ידע שנמצא בחשבון; משמש לזיהוי מי שינה מה */
-export type MergeBase = { prefs: AppState['prefs']; bought: AppState['shopping']['bought'] }
+export type MergeBase = {
+  prefs: AppState['prefs']
+  bought: AppState['shopping']['bought']
+  alwaysGood?: string[]
+  /** מפתחות ההתנגשויות (field:key) שהיו בחשבון בסנכרון האחרון; צד שהסיר רשומה כזו פתר את ההתנגשות */
+  conflicts?: string[]
+}
 
 export function baseOf(s: AppState): MergeBase {
-  return { prefs: { ...s.prefs }, bought: { ...s.shopping.bought } }
+  return { prefs: { ...s.prefs }, bought: { ...s.shopping.bought }, alwaysGood: [...s.alwaysGood], conflicts: (s.mergeConflicts ?? []).map((c) => `${c.field}:${c.key}`) }
 }
 
 /**
@@ -70,7 +76,8 @@ function threeWay<T>(l: T | undefined, r: T | undefined, base: Record<string, T>
 
 export function mergeStates(local: AppState, remote: AppState, base?: MergeBase): AppState {
   const goals = [...remote.goals, ...local.goals].filter((g, i, arr) => arr.findIndex((x) => x.setAt === g.setAt && x.kcal === g.kcal) === i)
-  const weights = [...remote.weights.filter((w) => !local.weights.some((l) => l.date === w.date)), ...local.weights]
+  // סדר קבוע לפי תאריך: אחרת שני מכשירים עם אותה קבוצה בסדר שונה לעולם לא מתכנסים ודוחפים זה לזה בלי סוף
+  const weights = [...remote.weights.filter((w) => !local.weights.some((l) => l.date === w.date)), ...local.weights].sort((a, b) => a.date.localeCompare(b.date))
   const prefs: AppState['prefs'] = {}
   const bought: AppState['shopping']['bought'] = {}
   const mergeConflicts: MergeConflict[] = []
@@ -79,7 +86,17 @@ export function mergeStates(local: AppState, remote: AppState, base?: MergeBase)
   // עד הבחירה, dislike קודם כדי לא להציע מנה שנדחתה; קנייה סותרת אינה מסומנת כבוצעה.
   const preferenceOrder: Pref[] = ['dislike', 'unknown', 'try', 'love']
   const prefKeys = new Set([...Object.keys(remote.prefs), ...Object.keys(local.prefs), ...prior.filter((c) => c.field === 'prefs').map((c) => c.key)])
+  const carries = (s: AppState, field: MergeConflict['field'], key: string) => (s.mergeConflicts ?? []).some((c) => c.field === field && c.key === key)
+  // פתרון התנגשות: הבסיס ידע על ההתנגשות, ורק צד אחד עדיין נושא אותה — הצד שהסיר אותה בחר ערך, והבחירה שלו גוברת.
+  // בלי בסיס (או כשהבסיס לא ידע עליה) אי אפשר להבדיל בין ״פתר״ ל״עוד לא ראה״, ולכן ההתנגשות נשמרת (יציב בניסיון חוזר).
+  const resolvedBy = <T,>(field: MergeConflict['field'], key: string, lv: T | undefined, rv: T | undefined): T | undefined => {
+    const lHas = carries(local, field, key), rHas = carries(remote, field, key)
+    if (lHas === rHas || !base?.conflicts?.includes(`${field}:${key}`)) return undefined
+    return lHas ? rv : lv
+  }
   for (const key of [...prefKeys].sort()) {
+    const chosen = resolvedBy('prefs', key, local.prefs[key], remote.prefs[key])
+    if (chosen !== undefined) { prefs[key] = chosen; continue }
     const alternatives = prior.flatMap((c) => c.field === 'prefs' && c.key === key ? c.values : [])
     const single = alternatives.length ? null : threeWay(local.prefs[key], remote.prefs[key], base?.prefs, key)
     if (single !== null) { if (single !== undefined) prefs[key] = single; continue }
@@ -90,6 +107,8 @@ export function mergeStates(local: AppState, remote: AppState, base?: MergeBase)
   }
   const boughtKeys = new Set([...Object.keys(remote.shopping.bought), ...Object.keys(local.shopping.bought), ...prior.filter((c) => c.field === 'shopping.bought').map((c) => c.key)])
   for (const key of [...boughtKeys].sort()) {
+    const chosen = resolvedBy('shopping.bought', key, local.shopping.bought[key], remote.shopping.bought[key])
+    if (chosen !== undefined) { bought[key] = chosen; continue }
     const alternatives = prior.flatMap((c) => c.field === 'shopping.bought' && c.key === key ? c.values : [])
     const single = alternatives.length ? null : threeWay(local.shopping.bought[key], remote.shopping.bought[key], base?.bought, key)
     if (single !== null) { if (single !== undefined) bought[key] = single; continue }
@@ -105,13 +124,19 @@ export function mergeStates(local: AppState, remote: AppState, base?: MergeBase)
     weights,
     prefs,
     shopping: { ...local.shopping, bought },
-    alwaysGood: [...new Set([...local.alwaysGood, ...remote.alwaysGood])].sort(),
+    // עם בסיס: מי ששינה מהבסיס גובר, כך שהסרה במכשיר אחד לא חוזרת מהשני. בלי בסיס: איחוד כמו קודם.
+    alwaysGood: [...new Set([...local.alwaysGood, ...remote.alwaysGood, ...(base?.alwaysGood ?? [])])].filter((id) => {
+      const l = local.alwaysGood.includes(id), r = remote.alwaysGood.includes(id)
+      if (l === r || !base?.alwaysGood) return l || r
+      return l !== base.alwaysGood.includes(id) ? l : r
+    }).sort(),
     mergeConflicts,
     log: mergeLogs(remote.log, local.log),
     plan: mergePlan(local.plan, remote.plan),
     customRecipes: mergeRecipes(local.customRecipes, remote.customRecipes),
     favorites: mergeFavorites(local.favorites, remote.favorites),
-    ideas: [...new Set([...local.ideas, ...remote.ideas])].slice(0, 20),
+    // הסדר מעוגן לחשבון (remote), ורעיונות חדשים מהמכשיר ראשונים (החדש ביותר ראשון); כך הסדר מתכנס בין מכשירים
+    ideas: [...new Set([...local.ideas.filter((i) => !remote.ideas.includes(i)), ...remote.ideas])].slice(0, 20),
     pantry: { ...remote.pantry, ...local.pantry },
     dayComplete: { ...remote.dayComplete, ...local.dayComplete },
     sent: [...remote.sent, ...local.sent].filter((s, i, arr) => arr.findIndex((x) => x.key === s.key) === i).slice(-60),

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FOOD_BY_ID } from '../data/foods'
 import { previewPlan, suggestFromBook } from '../engine/bookPlan'
 import { allergenLabel, checkRecipe } from '../engine/constraints'
@@ -22,12 +22,15 @@ const PREF_LABEL: Record<Pref, string> = { love: 'אוהב', try: 'מוכן לנ
 const NO_DATA = 'אין מספיק נתונים לחישוב'
 type KosherFilter = 'meat' | 'dairy' | 'parve'
 
-export function RecipeBook({ state, actions, today, q, openNoEnergy }: {
+export function RecipeBook({ state, actions, today, q, openNoEnergy, editRequest, onEditHandled }: {
   state: AppState
   actions: Actions
   today: string
   q: string
   openNoEnergy: () => void
+  /** בקשת עריכה שמגיעה מרשימה אחרת (״מועדפים וגיבויים״): פותחת את העורך כאן */
+  editRequest?: Recipe | null
+  onEditHandled?: () => void
 }) {
   const [quick, setQuick] = useState(true) // ברירת מחדל אישית: עד 30 דקות
   const [fav, setFav] = useState(false)
@@ -38,6 +41,7 @@ export function RecipeBook({ state, actions, today, q, openNoEnergy }: {
   const [skip, setSkip] = useState<string[]>([])
   const [open, setOpen] = useState<Recipe | null>(null)
   const [editing, setEditing] = useState<Recipe | 'new' | null>(null)
+  useEffect(() => { if (editRequest) { setEditing(editRequest); onEditHandled?.() } }, [editRequest]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const recipes = allRecipes(state)
   const book = recipes.filter((r) => r.kind === 'home' && !r.archived)

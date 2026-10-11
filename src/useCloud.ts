@@ -231,9 +231,14 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
     if (pick === 'account') {
       synced.current = JSON.stringify(choice.state)
       replaceState(choice.state)
+      // אין מה לשלוח, ולכן השליחה המושהית לא תעדכן את התווית: מעדכנים כאן (אחרת נשארת ״נדרשת בחירה״)
+      setSavedAt(choice.updated_at)
+      setStatus('saved')
     } else if (pick === 'merge') {
-      replaceState(mergeStates(stateRef.current, choice.state))
-    }
+      const merged = mergeStates(stateRef.current, choice.state)
+      if (sameContent(merged, choice.state)) { synced.current = JSON.stringify(merged); setSavedAt(choice.updated_at); setStatus('saved') } else setStatus('pending')
+      replaceState(merged)
+    } else setStatus('pending')
     writeBase(uid, choice.state)
     version.current = choice.version
     writeVersion(uid, choice.version)

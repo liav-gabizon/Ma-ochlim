@@ -19,6 +19,7 @@ export function FoodTab({ state, actions, today, openNoEnergy }: { state: AppSta
   const [seg, setSeg] = useState<Seg>('fav')
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<Recipe | null>(null)
+  const [editReq, setEditReq] = useState<Recipe | null>(null) // ״עריכה״ מרשימה אחרת פותחת את העורך בספר המתכונים
   const recipes = allRecipes(state).filter((r) => !r.archived)
   const match = (name: string) => !q.trim() || name.includes(q.trim())
 
@@ -37,7 +38,7 @@ export function FoodTab({ state, actions, today, openNoEnergy }: { state: AppSta
       <input className="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="חיפוש" aria-label="חיפוש" />
 
       {seg === 'book' ? (
-        <RecipeBook state={state} actions={actions} today={today} q={q} openNoEnergy={openNoEnergy} />
+        <RecipeBook state={state} actions={actions} today={today} q={q} openNoEnergy={openNoEnergy} editRequest={editReq} onEditHandled={() => setEditReq(null)} />
       ) : seg === 'mako' ? (
         <MakoList q={q} />
       ) : seg === 'db' ? (
@@ -88,7 +89,7 @@ export function FoodTab({ state, actions, today, openNoEnergy }: { state: AppSta
       )}
 
       {open && open.kind === 'home' && (
-        <BookRecipeSheet r={allRecipes(state).find((x) => x.id === open.id) ?? open} state={state} actions={actions} today={today} onEdit={() => setSeg('book')} onClose={() => setOpen(null)} />
+        <BookRecipeSheet r={allRecipes(state).find((x) => x.id === open.id) ?? open} state={state} actions={actions} today={today} onEdit={(r) => { setOpen(null); setSeg('book'); setEditReq(r) }} onClose={() => setOpen(null)} />
       )}
       {open && open.kind !== 'home' && <RecipeSheet r={open} state={state} actions={actions} today={today} onClose={() => setOpen(null)} />}
     </div>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { RECIPES } from '../data/recipes'
 import { initialState } from '../store'
-import type { AppState, Recipe } from '../types'
+import type { AppState, Pref, Recipe } from '../types'
 import { previewPlan, suggestFromBook } from './bookPlan'
 import { calcRecipe } from './nutrition'
 import {
@@ -291,5 +291,51 @@ describe('regression: שינוי העדפה בצד אחד בלבד אינו הת
     const local = state({ prefs: { ...base0.prefs, cheese_toast: 'love' } })
     const remote = state({ prefs: { ...base0.prefs, cheese_toast: 'dislike' } })
     expect(mergeStates(local, remote).mergeConflicts!.length).toBe(1)
+  })
+})
+
+describe('mergeStates: ממצאי סקירה לפני מיזוג (סדר מתכנס, בחירה שפתרה התנגשות, ״תמיד מתאים״)', () => {
+  const st = (p: Partial<AppState>): AppState => ({ ...initialState(), ...p })
+  const conflict = (values: Pref[]): NonNullable<AppState['mergeConflicts']> => [{ field: 'prefs', key: 'x', values }]
+
+  it('סדר weights ו-ideas מתכנס: מיזוג חוזר מהצד השני לא משנה דבר (אין פינג-פונג בין מכשירים)', () => {
+    const A = st({ weights: [{ id: 'w2', date: '2026-10-02', kg: 70 }, { id: 'w1', date: '2026-10-01', kg: 69 }], ideas: ['x', 'y'] })
+    const B = st({ weights: [{ id: 'w1', date: '2026-10-01', kg: 69 }, { id: 'w2', date: '2026-10-02', kg: 70 }], ideas: ['y', 'x'] })
+    const m1 = mergeStates(A, B)
+    const m2 = mergeStates(B, m1) // הצד השני מושך ומזג מול התוצאה
+    expect(m2.weights).toEqual(m1.weights)
+    expect(m2.ideas).toEqual(m1.ideas)
+    expect(m1.weights.map((w) => w.date)).toEqual(['2026-10-01', '2026-10-02'])
+    expect(mergeStates(m1, m1).ideas).toEqual(m1.ideas)
+    // רעיון חדש מהמכשיר נכנס ראשון (החדש ביותר ראשון), והסדר הקיים מהחשבון נשמר
+    expect(mergeStates(st({ ideas: ['new', 'y', 'x'] }), st({ ideas: ['y', 'x'] })).ideas).toEqual(['new', 'y', 'x'])
+  })
+
+  it('בחירה שפתרה התנגשות העדפה גוברת כשהצד השני עדיין נושא אותה (הבסיס ידע על ההתנגשות)', () => {
+    // מה שנשמר בחשבון אחרי המיזוג הראשון: ערך זמני + רשומת התנגשות; המכשיר סנכרן אותו, ולכן זה הבסיס שלו
+    const provisional = st({ prefs: { x: 'dislike' as Pref }, mergeConflicts: conflict(['dislike', 'love']) })
+    const base = baseOf(provisional)
+    const resolvedLove = st({ prefs: { x: 'love' as Pref }, mergeConflicts: [] })
+    const m = mergeStates(resolvedLove, provisional, base)
+    expect(m.prefs.x).toBe('love')
+    expect(m.mergeConflicts).toEqual([])
+    // גם כשבחר דווקא את הערך הזמני: הבחירה נרשמת וההתנגשות לא חוזרת
+    const resolvedDislike = st({ prefs: { x: 'dislike' as Pref }, mergeConflicts: [] })
+    expect(mergeStates(resolvedDislike, provisional, base).mergeConflicts).toEqual([])
+    // כיוון הפוך: הפתרון בחשבון, המכשיר עדיין נושא את ההתנגשות
+    expect(mergeStates(provisional, resolvedLove, base).prefs.x).toBe('love')
+    // בלי בסיס אי אפשר להבדיל ״פתר״ מ״עוד לא ראה״: ההתנגשות נשמרת (יציבות בניסיון חוזר, כמו בבדיקת ה-QA)
+    expect((mergeStates(resolvedLove, provisional).mergeConflicts ?? []).length).toBe(1)
+    // כששני הצדדים עדיין נושאים אותה: נשארת התנגשות אחת
+    const both = mergeStates(st({ prefs: { x: 'love' as Pref }, mergeConflicts: conflict(['dislike', 'love']) }), provisional, base)
+    expect((both.mergeConflicts ?? []).length).toBe(1)
+  })
+
+  it('״תמיד מתאים״: הסרה במכשיר אחד לא חוזרת מהשני, והוספה נשמרת (עם בסיס); בלי בסיס איחוד', () => {
+    const base = baseOf(st({ alwaysGood: ['r1'] }))
+    expect(mergeStates(st({ alwaysGood: [] }), st({ alwaysGood: ['r1'] }), base).alwaysGood).toEqual([])
+    expect(mergeStates(st({ alwaysGood: ['r1'] }), st({ alwaysGood: [] }), base).alwaysGood).toEqual([])
+    expect(mergeStates(st({ alwaysGood: ['r1', 'r2'] }), st({ alwaysGood: ['r1'] }), base).alwaysGood).toEqual(['r1', 'r2'])
+    expect(mergeStates(st({ alwaysGood: ['r1'] }), st({ alwaysGood: ['r2'] })).alwaysGood).toEqual(['r1', 'r2'])
   })
 })
