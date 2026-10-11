@@ -9,9 +9,10 @@ import { SLOTS } from '../types'
 import { Certainty, EFFORT_LABEL, Kcal, KosherUnverified, proteinText, Sheet, timeText } from './common'
 import { BookRecipeSheet, RecipeBook } from './RecipeBook'
 import { isFavorite } from '../engine/recipeBook'
+import { MAKO_LINKS, MAKO_CATEGORY_LABELS } from '../data/makoLinks'
 
 // ״ספר מתכונים״ מחליף את ״בבית״ (אותם מתכוני בית + מתכונים אישיים)
-type Seg = 'fav' | 'book' | 'outside' | 'db'
+type Seg = 'fav' | 'book' | 'outside' | 'db' | 'mako'
 const PREF_LABEL: Record<Pref, string> = { love: 'אוהב', try: 'מוכן לנסות', dislike: 'לא אוהב', unknown: 'לא ידוע' }
 
 export function FoodTab({ state, actions, today, openNoEnergy }: { state: AppState; actions: Actions; today: string; openNoEnergy: () => void }) {
@@ -29,7 +30,7 @@ export function FoodTab({ state, actions, today, openNoEnergy }: { state: AppSta
   return (
     <div className="screen">
       <div className="chips" role="tablist">
-        {([['fav', 'מועדפים וגיבויים'], ['book', 'ספר מתכונים'], ['outside', 'בחוץ'], ['db', 'מאגר']] as [Seg, string][]).map(([id, label]) => (
+        {([['fav', 'מועדפים וגיבויים'], ['book', 'ספר מתכונים'], ['mako', 'מאקו'], ['outside', 'בחוץ'], ['db', 'מאגר']] as [Seg, string][]).map(([id, label]) => (
           <button key={id} role="tab" aria-selected={seg === id} className={`chip ${seg === id ? 'on' : ''}`} onClick={() => setSeg(id)}>{label}</button>
         ))}
       </div>
@@ -37,6 +38,8 @@ export function FoodTab({ state, actions, today, openNoEnergy }: { state: AppSta
 
       {seg === 'book' ? (
         <RecipeBook state={state} actions={actions} today={today} q={q} openNoEnergy={openNoEnergy} />
+      ) : seg === 'mako' ? (
+        <MakoList q={q} />
       ) : seg === 'db' ? (
         <ul className="db-list">
           {FOODS.filter((f) => match(f.name) || (f.aliases ?? []).some(match)).map((f) => (
@@ -88,6 +91,40 @@ export function FoodTab({ state, actions, today, openNoEnergy }: { state: AppSta
         <BookRecipeSheet r={allRecipes(state).find((x) => x.id === open.id) ?? open} state={state} actions={actions} today={today} onEdit={() => setSeg('book')} onClose={() => setOpen(null)} />
       )}
       {open && open.kind !== 'home' && <RecipeSheet r={open} state={state} actions={actions} today={today} onClose={() => setOpen(null)} />}
+    </div>
+  )
+}
+
+// קטלוג קישורים חיצוניים למתכוני מאקו. שם וקישור בלבד; לחיצה פותחת את המתכון המקורי במאקו.
+// אין רכיבים, קלוריות או שיבוץ בתכנון — מופרד לגמרי ממנוע המתכונים.
+function MakoList({ q }: { q: string }) {
+  const query = q.trim()
+  const items = MAKO_LINKS.filter((l) => !query || l.title.includes(query) || (MAKO_CATEGORY_LABELS[l.category] ?? '').includes(query))
+  const groups = new Map<string, typeof MAKO_LINKS>()
+  for (const l of items) groups.set(l.category, [...(groups.get(l.category) ?? []), l])
+  return (
+    <div className="book">
+      <p className="muted small">
+        קישורים למתכונים באתר מאקו. לחיצה פותחת את המתכון המקורי במאקו, בלי נתוני תזונה ובלי שיבוץ בתכנון. {MAKO_LINKS.length} מתכונים ב־{new Set(MAKO_LINKS.map((l) => l.category)).size} קטגוריות.
+      </p>
+      {items.length === 0 && <p className="muted">לא נמצאו מתכונים שתואמים לחיפוש.</p>}
+      {[...groups.entries()].map(([cat, links]) => (
+        <section key={cat}>
+          <h3>{MAKO_CATEGORY_LABELS[cat] ?? cat} <span className="muted small">({links.length})</span></h3>
+          <ul className="recipe-list">
+            {links.map((l) => (
+              <li key={l.url}>
+                <a className="recipe-row" href={l.url} target="_blank" rel="noopener noreferrer">
+                  <span>
+                    <strong>{l.title}</strong>
+                    <span className="muted small">מאקו ↗</span>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
   )
 }
