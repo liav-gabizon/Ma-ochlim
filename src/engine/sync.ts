@@ -89,14 +89,15 @@ export function mergeStates(local: AppState, remote: AppState, base?: MergeBase)
   const carries = (s: AppState, field: MergeConflict['field'], key: string) => (s.mergeConflicts ?? []).some((c) => c.field === field && c.key === key)
   // פתרון התנגשות: הבסיס ידע על ההתנגשות, ורק צד אחד עדיין נושא אותה — הצד שהסיר אותה בחר ערך, והבחירה שלו גוברת.
   // בלי בסיס (או כשהבסיס לא ידע עליה) אי אפשר להבדיל בין ״פתר״ ל״עוד לא ראה״, ולכן ההתנגשות נשמרת (יציב בניסיון חוזר).
-  const resolvedBy = <T,>(field: MergeConflict['field'], key: string, lv: T | undefined, rv: T | undefined): T | undefined => {
+  // הצד שפתר יכול גם להסיר את הערך לגמרי (למשל איפוס רשימת קניות); גם זו הכרעה, ולכן התוצאה עטופה ולא נבדקת מול undefined.
+  const resolvedBy = <T,>(field: MergeConflict['field'], key: string, lv: T | undefined, rv: T | undefined): { value: T | undefined } | undefined => {
     const lHas = carries(local, field, key), rHas = carries(remote, field, key)
     if (lHas === rHas || !base?.conflicts?.includes(`${field}:${key}`)) return undefined
-    return lHas ? rv : lv
+    return { value: lHas ? rv : lv }
   }
   for (const key of [...prefKeys].sort()) {
     const chosen = resolvedBy('prefs', key, local.prefs[key], remote.prefs[key])
-    if (chosen !== undefined) { prefs[key] = chosen; continue }
+    if (chosen) { if (chosen.value !== undefined) prefs[key] = chosen.value; continue }
     const alternatives = prior.flatMap((c) => c.field === 'prefs' && c.key === key ? c.values : [])
     const single = alternatives.length ? null : threeWay(local.prefs[key], remote.prefs[key], base?.prefs, key)
     if (single !== null) { if (single !== undefined) prefs[key] = single; continue }
@@ -108,7 +109,7 @@ export function mergeStates(local: AppState, remote: AppState, base?: MergeBase)
   const boughtKeys = new Set([...Object.keys(remote.shopping.bought), ...Object.keys(local.shopping.bought), ...prior.filter((c) => c.field === 'shopping.bought').map((c) => c.key)])
   for (const key of [...boughtKeys].sort()) {
     const chosen = resolvedBy('shopping.bought', key, local.shopping.bought[key], remote.shopping.bought[key])
-    if (chosen !== undefined) { bought[key] = chosen; continue }
+    if (chosen) { if (chosen.value !== undefined) bought[key] = chosen.value; continue }
     const alternatives = prior.flatMap((c) => c.field === 'shopping.bought' && c.key === key ? c.values : [])
     const single = alternatives.length ? null : threeWay(local.shopping.bought[key], remote.shopping.bought[key], base?.bought, key)
     if (single !== null) { if (single !== undefined) bought[key] = single; continue }
@@ -179,10 +180,36 @@ export function resolveMergeConflict(s: AppState, field: 'prefs' | 'shopping.bou
   }
 }
 
-/** בדיקת מבנה לקובץ ייבוא, כדי שקובץ שגוי לא ישבור את האפליקציה */
+/**
+ * בדיקת מבנה לקובץ ייבוא, כדי שקובץ שגוי לא ישבור את האפליקציה.
+ * השדות המבניים (schema, profile עם זמני ארוחות ויעדים, goals, log, plan, weights) חייבים להיות תקינים;
+ * שדות שחסרים בקבצים ישנים או חלקיים (העדפות, מזווה, קניות, התראות, רעיונות) מקבלים ברירת מחדל ריקה במקום לקרוס בהמשך.
+ */
 export function validateImport(raw: unknown): AppState | null {
-  if (!raw || typeof raw !== 'object') return null
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
   const s = raw as Partial<AppState>
-  if (s.schema !== 1 || !s.profile || !Array.isArray(s.goals) || !Array.isArray(s.log) || !Array.isArray(s.plan) || !Array.isArray(s.weights)) return null
-  return s as AppState
+  const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
+  if (s.schema !== 1 || !isObj(s.profile) || !Array.isArray(s.goals) || s.goals.length === 0 || !Array.isArray(s.log) || !Array.isArray(s.plan) || !Array.isArray(s.weights)) return null
+  const p = s.profile as Partial<AppState['profile']>
+  const slots = ['morning', 'outside', 'evening'] as const
+  if (!isObj(p.mealTimes) || !isObj(p.slotTargets) || !slots.every((k) => typeof p.mealTimes![k] === 'string' && typeof p.slotTargets![k] === 'number')) return null
+  if (!s.goals.every((g) => isObj(g) && typeof g.kcal === 'number' && typeof g.effectiveFrom === 'string')) return null
+  if (!s.plan.every((m) => isObj(m) && typeof m.date === 'string' && typeof m.slot === 'string' && typeof m.recipeId === 'string')) return null
+  const notifications = { enabled: false, timesConfirmed: false, quietStart: '23:00', quietEnd: '07:30', dailyCap: 6, followUp: false, snoozeMinutes: 15, genericLockText: true, ...(isObj(s.notifications) ? s.notifications : {}) }
+  const shopping: Record<string, unknown> = isObj(s.shopping) ? s.shopping : {}
+  return {
+    ...s,
+    profile: { timezone: 'Asia/Jerusalem', allergies: 'unanswered', ...p } as AppState['profile'],
+    prefs: isObj(s.prefs) ? s.prefs : {},
+    rejections: isObj(s.rejections) ? s.rejections : {},
+    alwaysGood: Array.isArray(s.alwaysGood) ? s.alwaysGood.filter((x) => typeof x === 'string') : [],
+    customRecipes: Array.isArray(s.customRecipes) ? s.customRecipes : [],
+    dayComplete: isObj(s.dayComplete) ? s.dayComplete : {},
+    pantry: isObj(s.pantry) ? s.pantry : {},
+    shopping: { confirmed: Array.isArray(shopping.confirmed) ? shopping.confirmed : null, confirmedAt: typeof shopping.confirmedAt === 'string' ? shopping.confirmedAt : null, bought: isObj(shopping.bought) ? shopping.bought : {} } as AppState['shopping'],
+    notifications: notifications as AppState['notifications'],
+    sent: Array.isArray(s.sent) ? s.sent : [],
+    snoozed: isObj(s.snoozed) ? s.snoozed : {},
+    ideas: Array.isArray(s.ideas) ? s.ideas.filter((x) => typeof x === 'string') : [],
+  } as AppState
 }

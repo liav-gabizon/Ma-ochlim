@@ -60,6 +60,7 @@ function applyDiff(list: ShoppingLine[], d: ShoppingDiff): ShoppingLine[] {
   const removed = new Set(d.removed.map((l) => l.foodId))
   const changed = new Map(d.changed.map((c) => [c.to.foodId, c.to]))
   const out = list.filter((l) => !removed.has(l.foodId)).map((l) => changed.get(l.foodId) ?? l)
-  for (const a of d.added) if (!out.some((l) => l.foodId === a.foodId)) out.push(a)
+  // שורה ש״השתנתה״ אבל עוד לא הייתה ברשימה המאושרת (נוספה מאז האישור): נכנסת כפי שהוצגה בתצוגה המקדימה
+  for (const a of [...d.added, ...d.changed.map((c) => c.to)]) if (!out.some((l) => l.foodId === a.foodId)) out.push(a)
   return out
 }

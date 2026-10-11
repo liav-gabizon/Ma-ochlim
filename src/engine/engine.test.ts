@@ -238,7 +238,7 @@ describe('גיוון', () => {
   })
 })
 
-import { hasUserData, mergeLogs, mergeStates, validateImport } from './sync'
+import { baseOf, hasUserData, mergeLogs, mergeStates, validateImport } from './sync'
 import type { LogEntry } from '../types'
 
 const entry = (id: string, idemKey: string, extra: Partial<LogEntry> = {}): LogEntry => ({
@@ -274,5 +274,31 @@ describe('סנכרון ומיזוג', () => {
     expect(hasUserData({ ...s, log: [entry('1', 'k')] })).toBe(true)
     expect(validateImport(JSON.parse(JSON.stringify(s)))).not.toBeNull()
     expect(validateImport({ foo: 1 })).toBeNull()
+  })
+  it('ייבוא: קובץ חלקי מקבל ברירות מחדל לשדות שאינם מבניים, ומבנה שבור נדחה', () => {
+    const s = initialState()
+    const minimal = { schema: 1, profile: s.profile, goals: s.goals, log: [], plan: s.plan, weights: [] }
+    const imported = validateImport(JSON.parse(JSON.stringify(minimal)))!
+    expect(imported).not.toBeNull()
+    expect(imported.prefs).toEqual({})
+    expect(imported.ideas).toEqual([])
+    expect(imported.shopping).toEqual({ confirmed: null, confirmedAt: null, bought: {} })
+    expect(imported.notifications.dailyCap).toBe(6)
+    expect(imported.snoozed).toEqual({})
+    expect(validateImport([])).toBeNull()
+    expect(validateImport({ ...minimal, goals: [] })).toBeNull()
+    expect(validateImport({ ...minimal, profile: { ...s.profile, mealTimes: undefined } })).toBeNull()
+    expect(validateImport({ ...minimal, plan: [{ date: '2026-10-04' }] })).toBeNull()
+  })
+  it('איפוס רשימת קניות במכשיר אחד פותר התנגשות ״נקנה״ ולא מחזיר אותה במיזוג הבא', () => {
+    const a = initialState(new Date('2026-10-04T08:00:00Z'))
+    const remote = { ...a, shopping: { confirmed: null, confirmedAt: null, bought: { egg: true } }, mergeConflicts: [{ field: 'shopping.bought' as const, key: 'egg', values: [false, true] }] }
+    const base = baseOf(remote)
+    const local = { ...a, shopping: { confirmed: null, confirmedAt: null, bought: {} }, mergeConflicts: [] }
+    const m = mergeStates(local, remote, base)
+    expect(m.mergeConflicts).toEqual([])
+    expect(m.shopping.bought.egg).toBeUndefined()
+    // בלי בסיס אי אפשר להבדיל בין ״פתר״ ל״עוד לא ראה״: ההתנגשות נשמרת (יציב)
+    expect(mergeStates(local, remote).mergeConflicts).toHaveLength(1)
   })
 })

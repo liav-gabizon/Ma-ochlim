@@ -156,6 +156,21 @@ describe('ספר מתכונים: שיבוץ + קניות כפעולה אחת', (
     // שאר הימים לא נגעו
     expect(p.next.plan.filter((m) => m.date !== TODAY)).toEqual(s0.plan.filter((m) => m.date !== TODAY))
   })
+  it('שורה שהשתנתה אבל עוד לא הייתה ברשימה המאושרת נכנסת לרשימה כפי שהוצגה בתצוגה המקדימה', () => {
+    const r = book()
+    const base = state({ customRecipes: [r] })
+    const recipes = [...RECIPES, r]
+    const before = generateShopping(base.plan, recipes, base.pantry).toBuy
+    const full = previewPlan({ ...base, shopping: { confirmed: before, confirmedAt: '2026-10-05T07:00:00.000Z', bought: {} } }, recipes, TODAY, 'evening', r.id, 4)
+    const changed = full.diff.changed[0]
+    expect(changed).toBeDefined()
+    // הרשימה המאושרת נוצרה לפני שהמצרך הזה נכנס לתכנון: הוא לא ברשימה, אבל ההפרש מציג אותו כ״השתנה״
+    const stale = before.filter((l) => l.foodId !== changed.to.foodId)
+    const p = previewPlan({ ...base, shopping: { confirmed: stale, confirmedAt: '2026-10-05T07:00:00.000Z', bought: {} } }, recipes, TODAY, 'evening', r.id, 4)
+    expect(p.diff.changed.some((c) => c.to.foodId === changed.to.foodId)).toBe(true)
+    const line = p.next.shopping.confirmed!.find((l) => l.foodId === changed.to.foodId)
+    expect(line?.neededGrams).toBe(changed.to.neededGrams)
+  })
   it('בלי רשימה מאושרת: הרשימה נשארת לא מאושרת', () => {
     const r = book()
     const s0 = state({ customRecipes: [r] })

@@ -126,7 +126,8 @@ export function useCloudSync(state: AppState, replaceState: (s: AppState) => voi
     pulling.current = true
     try {
       const remote = await fetchRemote(uid)
-      if (!remote || remote.version === version.current || saving.current) return
+      // גרסה שכבר ידועה, או ישנה ממה שהמכשיר עצמו שמר בינתיים (שליחה שהסתיימה תוך כדי המשיכה): אין מה למזג
+      if (!remote || (version.current != null && remote.version <= version.current) || saving.current) return
       const merged = mergeStates(stateRef.current, remote.state, readBase(uid))
       version.current = remote.version
       writeVersion(uid, remote.version)

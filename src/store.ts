@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { LOVED_FOODS, LOVED_RECIPES, RECIPES } from './data/recipes'
 import { localDate } from './engine/dates'
 import { calcRecipe } from './engine/nutrition'
@@ -127,6 +127,7 @@ function save(s: AppState) {
   }
 }
 
+const now = () => new Date()
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`)
 export const newIdemKey = uid
 
@@ -153,10 +154,10 @@ export function useAppState() {
 
   const update = useCallback((fn: (s: AppState) => AppState) => setState((s) => fn(s)), [])
 
-  const now = () => new Date()
   const today = () => localDate(now(), state.profile.timezone)
 
-  const actions = {
+  // הפעולות יציבות בין רינדורים: כולן קוראות את המצב דרך update, כך שאפקטים שתלויים בהן (למשל שמירה לחשבון) לא רצים מחדש בכל רינדור
+  const actions = useMemo(() => ({
     /** כתיבה ליומן. מפתח ייחודי מונע כפילות בלחיצה כפולה או שליחה חוזרת (AC11). */
     logEntry(p: { idemKey: string; title: string; items: LogItemSnapshot[]; slot?: SlotId; mode?: 'replace' | 'add'; portion?: number; eatenAt?: Date }) {
       update((s) => {
@@ -177,10 +178,10 @@ export function useAppState() {
       })
     },
     eatPlanned(meal: PlannedMeal, portion = 1) {
-      const r = allRecipes(state).find((x) => x.id === meal.recipeId)
-      if (!r) return
       const idemKey = `plan:${meal.date}:${meal.slot}:${meal.recipeId}:${meal.multiplier}`
       update((s) => {
+        const r = allRecipes(s).find((x) => x.id === meal.recipeId)
+        if (!r) return s
         if (s.log.some((e) => e.idemKey === idemKey && !e.deleted)) return s
         const entry: LogEntry = {
           id: uid(), idemKey, localDate: meal.date, timezone: s.profile.timezone,
@@ -324,7 +325,7 @@ export function useAppState() {
       }
       update(() => initialState())
     },
-  }
+  }), [update])
 
   return { state, actions, saveOk, today }
 }

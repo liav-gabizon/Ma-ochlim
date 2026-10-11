@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { hhmmToMinutes, localMinutes } from '../engine/dates'
+import { checkRecipe } from '../engine/constraints'
 import { calcRecipe, displayKcal } from '../engine/nutrition'
 import { line, smallWins } from '../engine/motivation'
 import { SLOT_LABEL } from '../notifications'
@@ -76,6 +77,10 @@ export function Today({ state, actions, today, openMeal, openNoEnergy, openFreeT
             </span>
             {nextRecipe.kind === 'outside' && <KosherUnverified />}
           </button>
+          {/* אלרגיות או הפרדה שהוגדרו אחרי התכנון: אותה אזהרה כמו בכרטיס הארוחה, כדי שלא תוסתר במסך הבית */}
+          {!checkRecipe(nextRecipe, state.profile).ok && (
+            <div className="banner warn">לא מתאים לאילוצים שהוגדרו: {checkRecipe(nextRecipe, state.profile).reasons.join(', ')}</div>
+          )}
           <div className="grid-actions">
             <button className="btn primary" disabled={locked} onClick={() => { actions.eatPlanned(next); lockBriefly() }}>אכלתי</button>
             <button className="btn" disabled={locked} onClick={() => openMeal(next, true)}>החלף</button>
