@@ -23,6 +23,16 @@ function inQuiet(min: number, start: string, end: string) {
   return s <= e ? min >= s && min < e : min >= s || min < e
 }
 
+/**
+ * תזכורת רגילה נשלחת פעם אחת למשבצת ביום, גם אם הארוחה הוחלפה אחרי שנשלחה (ההחלפה לא יוצרת תזכורת נוספת,
+ * ותזכורת שטרם נשלחה תישלח לארוחה הנוכחית). אחרי ״הזכר לי מאוחר יותר״ נשלחת תזכורת אחת לכל מועד השהיה.
+ * אותו כלל רץ בשרת (supabase/functions/send-reminders).
+ */
+export function reminderAlreadySent(sentKeys: string[], slotKey: string, snoozeUntil?: string): boolean {
+  const prefix = slotKey + ':'
+  return sentKeys.some((k) => k.startsWith(prefix) && (snoozeUntil ? k.endsWith(':snz:' + snoozeUntil) : !k.includes(':snz:')))
+}
+
 /** מחזיר תזכורת אחת לכל היותר שצריך לשלוח עכשיו, אחרי כל הבדיקות. */
 export function dueReminder(s: AppState, now: Date): DueReminder | null {
   const n = s.notifications
@@ -36,8 +46,8 @@ export function dueReminder(s: AppState, now: Date): DueReminder | null {
 
   for (const slot of SLOTS) {
     const meal = s.plan.find((p) => p.date === today && p.slot === slot)
-    // דיווח, דילוג או החלפה מבטלים את התזכורת
-    if (!meal || meal.status !== 'planned' || meal.reminderCancelled) continue
+    // דיווח או דילוג מבטלים את התזכורת; החלפה לא (התזכורת היא למשבצת, לארוחה שמתוכננת בה עכשיו)
+    if (!meal || meal.status !== 'planned') continue
     const slotKey = `${today}:${slot}`
     const snoozeUntil = s.snoozed[slotKey]
     const base = hhmmToMinutes(s.profile.mealTimes[slot])
@@ -51,7 +61,7 @@ export function dueReminder(s: AppState, now: Date): DueReminder | null {
     }
     if (min < due || min > due + EXPIRY_MIN) continue // תזכורת שפג תוקפה לא נשלחת
     const key = `${slotKey}:${version}`
-    if (s.sent.some((x) => x.key === key)) continue
+    if (reminderAlreadySent(s.sent.map((x) => x.key), slotKey, snoozeUntil)) continue
     const r = [...RECIPES, ...s.customRecipes].find((x) => x.id === meal.recipeId)
     const body = n.genericLockText
       ? 'זמן לאכול. לפתוח את הארוחה?'

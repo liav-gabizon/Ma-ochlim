@@ -9,7 +9,7 @@ export function hasUserData(s: AppState | null | undefined): boolean {
   const defaultLoved = new Set([...LOVED_FOODS, ...LOVED_RECIPES])
   const editedPrefs = Object.entries(s.prefs).some(([id, pref]) => pref !== (defaultLoved.has(id) ? 'love' : 'unknown'))
   return s.log.length > 0 || s.weights.length > 0 || s.customRecipes.length > 0 || s.ideas.length > 0 ||
-    Object.keys(s.pantry).length > 0 || s.plan.some((p) => p.status !== 'planned' || p.reminderCancelled) || s.goals.length > 1 ||
+    Object.keys(s.pantry).length > 0 || s.plan.some((p) => p.status !== 'planned') || s.goals.length > 1 ||
     editedPrefs || Object.keys(s.favorites ?? {}).length > 0 || s.alwaysGood.length > 0 || Object.keys(s.shopping.bought).length > 0 || !!s.mergeConflicts?.length
 }
 
@@ -42,7 +42,7 @@ function mergePlan(local: PlannedMeal[], remote: PlannedMeal[]): PlannedMeal[] {
     const r = map.get(key(p))
     // ארוחה שדווחה גוברת על ארוחה שרק תוכננה
     const picked = !r || p.status !== 'planned' || r.status === 'planned' ? p : r
-    map.set(key(p), p.reminderCancelled || r?.reminderCancelled ? { ...picked, reminderCancelled: true } : picked)
+    map.set(key(p), picked)
   }
   return [...map.values()].sort((a, b) => key(a).localeCompare(key(b)))
 }

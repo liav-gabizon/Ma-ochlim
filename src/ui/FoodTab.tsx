@@ -8,7 +8,7 @@ import type { AppState, Pref, Recipe, SlotId } from '../types'
 import { SLOTS } from '../types'
 import { Certainty, EFFORT_LABEL, Kcal, KosherUnverified, proteinText, Sheet, timeText } from './common'
 import { BookRecipeSheet, RecipeBook } from './RecipeBook'
-import { isFavorite } from '../engine/recipeBook'
+import { completeness, isFavorite } from '../engine/recipeBook'
 import { MAKO_LINKS, MAKO_CATEGORY_LABELS } from '../data/makoLinks'
 
 // ״ספר מתכונים״ מחליף את ״בבית״ (אותם מתכוני בית + מתכונים אישיים)
@@ -79,7 +79,7 @@ export function FoodTab({ state, actions, today, openNoEnergy }: { state: AppSta
                     <span className="muted small">{timeText(r)} · {EFFORT_LABEL[r.effort]}{blocked && ' · לא מתאים לאילוצים'}</span>
                     {r.kind === 'outside' && <KosherUnverified />}
                   </span>
-                  <Kcal calc={c} />
+                  {completeness(r) === 'full' ? <Kcal calc={c} /> : <span className="tag tag-estimate">אין מספיק נתונים לחישוב</span>}
                 </button>
               </li>
             )

@@ -1,6 +1,6 @@
 // שולח תזכורות ארוחה ב־Web Push. מופעל כל דקה על ידי pg_cron.
-// הכללים זהים ל־src/notifications.ts: דיווח/דילוג/החלפה מבטלים, שעות שקטות, תקרה יומית,
-// תפוגה של 120 דקות ומפתח ייחודי לכל אירוע כדי שלא תישלח אותה תזכורת פעמיים.
+// הכללים זהים ל־src/notifications.ts: דיווח/דילוג מבטלים, החלפה לא (תזכורת אחת למשבצת ביום, לארוחה הנוכחית),
+// שעות שקטות, תקרה יומית, תפוגה של 120 דקות ומפתח ייחודי לכל אירוע כדי שלא תישלח אותה תזכורת פעמיים.
 import { createClient } from 'npm:@supabase/supabase-js@2.58.0'
 import webpush from 'npm:web-push@3.6.7'
 
@@ -27,7 +27,15 @@ function inQuiet(min: number, start: string, end: string) {
 // deno-lint-ignore no-explicit-any
 type State = any
 
-function dueReminders(s: State, now: Date, sentToday: number): { key: string; slot: Slot; title: string; body: string }[] {
+/** תזכורת רגילה פעם אחת למשבצת ביום גם אחרי החלפה; אחרי השהיה פעם אחת לכל מועד השהיה (זהה ל־reminderAlreadySent בלקוח) */
+function reminderAlreadySent(sentKeys: string[], slotKey: string, snoozeUntil?: string): boolean {
+  const prefix = slotKey + ':'
+  return sentKeys.some((k) => k.startsWith(prefix) && (snoozeUntil ? k.endsWith(':snz:' + snoozeUntil) : !k.includes(':snz:')))
+}
+
+/** sentKeys: מפתחות האירועים שנשלחו (או בשליחה) היום לאותו משתמש */
+function dueReminders(s: State, now: Date, sentKeys: string[]): { key: string; slot: Slot; title: string; body: string }[] {
+  const sentToday = sentKeys.length
   const n = s?.notifications
   if (!n?.enabled || !n?.timesConfirmed) return []
   const tz = s.profile?.timezone ?? 'Asia/Jerusalem'
@@ -39,7 +47,7 @@ function dueReminders(s: State, now: Date, sentToday: number): { key: string; sl
   for (const slot of SLOTS) {
     // deno-lint-ignore no-explicit-any
     const meal = (s.plan ?? []).find((p: any) => p.date === today && p.slot === slot)
-    if (!meal || meal.status !== 'planned' || meal.reminderCancelled) continue
+    if (!meal || meal.status !== 'planned') continue
     const slotKey = `${today}:${slot}`
     const snooze = s.snoozed?.[slotKey]
     let due = hm(s.profile.mealTimes[slot])
@@ -51,6 +59,7 @@ function dueReminders(s: State, now: Date, sentToday: number): { key: string; sl
       version += ':snz:' + snooze
     }
     if (min < due || min > due + EXPIRY_MIN) continue
+    if (reminderAlreadySent(sentKeys, slotKey, snooze)) continue
     const name = s.recipeNames?.[meal.recipeId]
     const body = n.genericLockText || !name ? 'זמן לאכול. לפתוח את הארוחה?' : `זמן לאכול: ${name}. לפתוח את הארוחה?`
     out.push({ key: `${slotKey}:${version}`, slot, title: SLOT_LABEL[slot], body })
@@ -106,9 +115,10 @@ Deno.serve(async (req) => {
     if (!row) continue
     const tz = row.state?.profile?.timezone ?? 'Asia/Jerusalem'
     const today = localDate(now, tz)
-    const { count } = await admin.from('notification_events').select('id', { count: 'exact', head: true })
-      .eq('user_id', userId).eq('status', 'sent').like('key', `${today}:%`)
-    for (const r of dueReminders(row.state, now, count ?? 0)) {
+    const { data: sentRows } = await admin.from('notification_events').select('key')
+      .eq('user_id', userId).in('status', ['sent', 'sending']).like('key', `${today}:%`)
+    const sentKeys: string[] = (sentRows ?? []).map((e: { key: string }) => e.key)
+    for (const r of dueReminders(row.state, now, sentKeys)) {
       // המפתח הייחודי מבטיח שליחה אחת גם אם שתי ריצות חופפות
       const { data: ins, error } = await admin.from('notification_events').insert({ user_id: userId, key: r.key, status: 'sending' }).select()
       if (error || !ins?.length) { summary.skipped++; continue }

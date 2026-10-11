@@ -96,8 +96,6 @@ export interface PlannedMeal {
   multiplier: number
   status: SlotStatus
   logId?: string
-  /** החלפה מבטלת את תזכורת המשבצת גם אחרי מיזוג ותכנון מחדש. */
-  reminderCancelled?: boolean
   /** כמה מנות מבשלים (מתכון מהספר); משפיע על הקניות בלבד, לא על הקלוריות שנאכלות */
   cookServings?: number
 }

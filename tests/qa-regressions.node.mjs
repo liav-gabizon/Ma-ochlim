@@ -97,53 +97,75 @@ test('existing log idempotency and eaten status merge are preserved', () => {
 })
 
 test('baseline untouched planned meal remains due in client and server', () => {
-  const s = base(); assert.equal(dueReminder(s, now)?.slot, 'morning'); assert.equal(serverDue(s, now, 0).length, 1)
+  const s = base(); assert.equal(dueReminder(s, now)?.slot, 'morning'); assert.equal(serverDue(s, now, []).length, 1)
 })
 
-test('actual replacePlanned action cancels client and every next server tick without logging food', () => {
+test('actual replacePlanned action keeps one reminder for the new meal without logging food, on client and server', () => {
   const s = replace(base(), date, 'morning', 'yogurt_banana', 1)
   assert.equal(s.plan[0].status, 'planned'); assert.equal(s.log.length, 0)
-  assert.equal(dueReminder(s, now), null)
-  assert.equal(serverDue(s, now, 0).length, 0)
-  assert.equal(serverDue(s, new Date('2026-10-04T09:31:00Z'), 0).length, 0)
-  assert.equal(serverDue(s, new Date('2026-10-04T10:00:00Z'), 1).length, 0)
+  assert.equal('reminderCancelled' in s.plan[0], false)
+  assert.equal(dueReminder(s, now)?.key, `${date}:morning:yogurt_banana`)
+  assert.deepEqual([...serverDue(s, now, []).map(r => r.key)], [`${date}:morning:yogurt_banana`])
+  assert.equal(serverDue(s, new Date('2026-10-04T10:00:00Z'), []).length, 1)
+  assert.equal(serverDue(s, new Date('2026-10-04T11:01:00Z'), []).length, 0)
 })
 
-test('same-recipe replacement and repeated replacements still cancel that slot', () => {
-  const first = replace(base(), date, 'morning', 'toast_eggs', 1)
-  const next = replace(first, date, 'morning', 'cornflakes', 1)
-  assert.equal(serverDue(first, now, 0).length, 0); assert.equal(serverDue(next, now, 0).length, 0)
+test('a reminder already sent for the slot is not repeated after one or more swaps, on client and server', () => {
+  const sentKey = `${date}:morning:toast_eggs`
+  const s = base(); s.sent = [{ key: sentKey, at: '2026-10-04T09:00:00Z' }]
+  const once = replace(s, date, 'morning', 'cornflakes', 1)
+  const twice = replace(once, date, 'morning', 'yogurt_banana', 1)
+  assert.equal(dueReminder(once, now), null); assert.equal(dueReminder(twice, now), null)
+  assert.equal(serverDue(once, now, [sentKey]).length, 0); assert.equal(serverDue(twice, now, [sentKey]).length, 0)
+  assert.equal(serverDue(twice, new Date('2026-10-04T10:00:00Z'), [sentKey]).length, 0)
+  // a reminder still in flight ("sending") counts as sent; a reminder sent yesterday does not
+  assert.equal(serverDue(twice, now, [`${date}:morning:cornflakes`]).length, 0)
+  assert.equal(serverDue(twice, now, []).length, 1)
 })
 
-test('cancellation survives stale-device merges in either direction and reload', () => {
-  const old = base(); const cancelled = replace(old, date, 'morning', 'cornflakes', 1)
-  for (const state of [mergeStates(old, cancelled), mergeStates(cancelled, old)]) {
+test('the slot reminder follows the current meal through stale-device merges in either direction and reload', () => {
+  const old = base(); const swapped = replace(old, date, 'morning', 'cornflakes', 1)
+  for (const state of [mergeStates(old, swapped), mergeStates(swapped, old)]) {
     const reopened = JSON.parse(JSON.stringify(state))
-    assert.equal(dueReminder(reopened, now), null); assert.equal(serverDue(reopened, now, 0).length, 0)
+    const meal = reopened.plan.find(p => p.date === date && p.slot === 'morning')
+    assert.equal('reminderCancelled' in meal, false)
+    assert.equal(dueReminder(reopened, now)?.key, `${date}:morning:${meal.recipeId}`)
+    assert.deepEqual([...serverDue(reopened, now, []).map(r => r.key)], [`${date}:morning:${meal.recipeId}`])
   }
 })
 
-test('weekly regeneration preserves cancellation and snooze cannot revive it', () => {
+test('weekly regeneration keeps one reminder per slot; snooze re-sends once per snooze time even across a swap', () => {
   const s = replace(base(), date, 'morning', 'cornflakes', 1)
   s.plan = generateWeek(date, RECIPES, { profile: s.profile, prefs: s.prefs, rejections: s.rejections }, s.plan)
-  s.snoozed[`${date}:morning`] = '2026-10-04T09:10:00Z'
-  assert.equal(dueReminder(s, now), null); assert.equal(serverDue(s, now, 0).length, 0)
+  const meal = s.plan.find(p => p.date === date && p.slot === 'morning')
+  assert.equal(serverDue(s, now, []).length, 1)
+  const until = '2026-10-04T09:10:00Z'
+  s.snoozed[`${date}:morning`] = until
+  const snoozeKey = `${date}:morning:${meal.recipeId}:snz:${until}`
+  assert.equal(dueReminder(s, now)?.key, snoozeKey)
+  assert.deepEqual([...serverDue(s, now, [`${date}:morning:toast_eggs`]).map(r => r.key)], [snoozeKey])
+  assert.equal(serverDue(s, new Date('2026-10-04T09:05:00Z'), []).length, 0)
+  // the snoozed reminder was already sent (for the recipe planned at the time): a swap does not re-send it
+  const sentSnooze = `${date}:morning:toast_eggs:snz:${until}`
+  assert.equal(serverDue(s, now, [sentSnooze]).length, 0)
+  s.sent = [{ key: sentSnooze, at: '2026-10-04T09:10:30Z' }]
+  assert.equal(dueReminder(s, now), null)
 })
 
-test('other slot and following day remain eligible after cancellation', () => {
-  const s = replace(base(), date, 'morning', 'cornflakes', 1)
+test('other slot and following day remain eligible after a sent reminder', () => {
+  const s = base(); const sent = [`${date}:morning:toast_eggs`]
   s.plan.push({ date, slot: 'outside', recipeId: 'out_falafel', multiplier: 1, status: 'planned' })
-  assert.equal(serverDue(s, new Date('2026-10-04T14:30:00Z'), 0)[0]?.slot, 'outside')
+  assert.equal(serverDue(s, new Date('2026-10-04T14:30:00Z'), sent)[0]?.slot, 'outside')
   s.plan.push({ date: '2026-10-05', slot: 'morning', recipeId: 'toast_eggs', multiplier: 1, status: 'planned' })
-  assert.equal(serverDue(s, new Date('2026-10-05T09:30:00Z'), 0)[0]?.slot, 'morning')
+  assert.equal(serverDue(s, new Date('2026-10-05T09:30:00Z'), [])[0]?.slot, 'morning')
 })
 
 test('eaten, skipped, quiet hours and expiry still suppress reminders', () => {
   for (const status of ['eaten', 'partial', 'skipped', 'swapped']) {
     const s = base(); s.plan[0].status = status
-    assert.equal(dueReminder(s, now), null); assert.equal(serverDue(s, now, 0).length, 0)
+    assert.equal(dueReminder(s, now), null); assert.equal(serverDue(s, now, []).length, 0)
   }
-  assert.equal(serverDue(base(), new Date('2026-10-04T11:01:00Z'), 0).length, 0)
+  assert.equal(serverDue(base(), new Date('2026-10-04T11:01:00Z'), []).length, 0)
   const s = base(); s.notifications.quietStart = '09:00'; s.notifications.quietEnd = '10:00'
-  assert.equal(serverDue(s, now, 0).length, 0)
+  assert.equal(serverDue(s, now, []).length, 0)
 })
