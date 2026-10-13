@@ -72,6 +72,10 @@ export function initialState(now = new Date()): AppState {
 export function allRecipes(s: AppState): Recipe[] {
   return [...RECIPES, ...s.customRecipes]
 }
+/** שינוי פרופיל כפונקציה טהורה, כדי שאפשר יהיה לבדוק אותו בלי React. */
+export function setProfileState(s: AppState, p: Partial<Profile>, _today: string): AppState {
+  return { ...s, profile: { ...s.profile, ...p } }
+}
 export function rankCtx(s: AppState): RankContext {
   return { profile: s.profile, prefs: s.prefs, rejections: s.rejections }
 }
@@ -239,7 +243,7 @@ export function useAppState() {
       update((s) => ({ ...s, goals: [...s.goals, { kcal, effectiveFrom, setAt: now().toISOString() }] }))
     },
     setProfile(p: Partial<Profile>) {
-      update((s) => ({ ...s, profile: { ...s.profile, ...p } }))
+      update((s) => setProfileState(s, p, localDate(now(), s.profile.timezone)))
     },
     setPref(id: string, pref: Pref) {
       update((s) => resolveMergeConflict(s, 'prefs', id, pref))

@@ -1,4 +1,4 @@
-import type { Profile, Recipe } from '../types'
+import type { MealItem, Profile, Recipe } from '../types'
 import { allergensOf, kosherOf } from './nutrition'
 
 export interface ConstraintResult {
@@ -23,4 +23,9 @@ export function checkRecipe(r: Recipe, profile: Profile): ConstraintResult {
     for (const a of profile.allergies) if (found.has(a)) reasons.push(`מכיל ${allergenLabel(a)}`)
   }
   return { ok: reasons.length === 0, reasons }
+}
+
+/** שלד זמני לפני התיקון: משקף את ההתנהגות הקיימת (טקסט חופשי לא נבדק מול האילוצים). */
+export function checkDraft(_lines: { foodId?: string; parts?: MealItem[]; grams: number }[], _profile: Profile): ConstraintResult {
+  return { ok: true, reasons: [] }
 }

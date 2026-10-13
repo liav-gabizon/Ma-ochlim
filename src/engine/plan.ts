@@ -77,3 +77,20 @@ export function generateWeek(start: string, recipes: Recipe[], ctx: RankContext,
   }
   return result
 }
+
+export interface ConstraintChange {
+  date: string
+  slot: SlotId
+  from: string
+  /** null = לא נמצאה חלופה שעומדת באילוצים, והמשבצת התרוקנה */
+  to: string | null
+  reasons: string[]
+}
+
+/** שלד זמני לפני התיקון: משקף את ההתנהגות הקיימת (אין אכיפה אחרי שינוי אילוצים). */
+export function planViolations(_meal: PlannedMeal, _day: PlannedMeal[], _recipes: Recipe[], _ctx: RankContext): string[] {
+  return []
+}
+export function enforceConstraints(plan: PlannedMeal[], _recipes: Recipe[], _ctx: RankContext, _from: string): { plan: PlannedMeal[]; changes: ConstraintChange[] } {
+  return { plan, changes: [] }
+}

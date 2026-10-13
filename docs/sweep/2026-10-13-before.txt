@@ -1,0 +1,392 @@
+
+ RUN  v3.2.7 /Users/gabizon/תכנות/_sweep/wt/Ma-ochlim
+
+ ❯ src/engine/sweep.test.ts (25 tests | 19 failed) 206ms
+   × שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > אלרגיה שנוספה: ארוחה מתוכננת שמכילה את האלרגן מוחלפת, ואף ארוחה מתוכננת לא נשארת מפרה 60ms
+     → expected 'toast_eggs' not to be 'toast_eggs' // Object.is equality
+   × שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > ארוחות שדווחו נשארות כמו שהן, גם כשהן מכילות את האלרגן; ארוחות שלא מפרות לא זזות 8ms
+     → expected 'egg_sandwich' not to be 'egg_sandwich' // Object.is equality
+   ✓ שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > החלפה בגלל אילוץ אינה ״לא בא לי״: לא נספרת כדחייה של המנה 7ms
+   × שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > כשאין חלופה שעומדת באילוצים, הארוחה המפרה מוסרת ולא נשארת בשקט 4ms
+     → expected [ { date: '2026-10-04', …(4) }, …(1) ] to deeply equal [ { date: '2026-10-04', …(4) } ]
+   × שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > הפרדת בשר וחלב שהוגדרה אחרי התכנון: ארוחה חלבית מתוכננת בתוך זמן ההמתנה מוחלפת 6ms
+     → expected 'pasta_tomato' not to be 'pasta_tomato' // Object.is equality
+   × שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > בשרי שכבר נאכל נשאר, והחלבי המתוכנן אחריו מוחלף; חלבי שכבר נאכל נשאר, והבשרי המתוכנן לפניו מוחלף 10ms
+     → expected 'dairy' not to be 'dairy' // Object.is equality
+   ✓ שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > ארוחה שדולגה או הוחלפה לא נאכלה, ולכן לא יוצרת זמן המתנה 5ms
+   × שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > שינוי שעת ארוחה שמכניס ארוחה חלבית לזמן ההמתנה מחליף אותה 4ms
+     → expected 'dairy' not to be 'dairy' // Object.is equality
+   × שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > תכנון מחדש מתחשב בבשרי שכבר נאכל באותו יום 9ms
+     → 2026-10-07: expected 'dairy' not to be 'dairy' // Object.is equality
+   ✓ שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > שינוי בפרופיל שאינו אילוץ לא נוגע בתכנון 4ms
+   × שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > רשימת הקניות שנגזרת מהתכנון מתעדכנת: המצרך האלרגני יוצא, ורשימה מאושרת מקבלת הפרש לאישור 6ms
+     → egg: expected [ 'egg' ] to not include 'egg'
+   × טקסט חופשי נבדק מול האילוצים > מאכל מהמאגר שמכיל אלרגן מסומן באותו נוסח של המסלול המובנה 2ms
+     → expected true to be false // Object.is equality
+   × טקסט חופשי נבדק מול האילוצים > מנה מורכבת: אותן סיבות כמו בבדיקת המתכון עצמו 1ms
+     → expected { ok: true, reasons: [] } to deeply equal { ok: false, reasons: [ …(2) ] }
+   × טקסט חופשי נבדק מול האילוצים > ״בלי״ שמסיר את הרכיב האלרגני מסיר גם את האזהרה 0ms
+     → expected true to be false // Object.is equality
+   × טקסט חופשי נבדק מול האילוצים > בשר וחלב באותה ארוחה בטקסט חופשי 1ms
+     → expected [] to deeply equal [ 'בשר וחלב באותה ארוחה' ]
+   ✓ טקסט חופשי נבדק מול האילוצים > בלי אלרגיות מוגדרות ובלי ערבוב: אין אזהרה 0ms
+   ✓ יעדי המשבצות נגזרים מהיעד היומי > ביעד ברירת המחדל החלוקה נשארת 700/1000/800 0ms
+   × יעדי המשבצות נגזרים מהיעד היומי > יעד אחר: אותה חלוקה יחסית 1ms
+     → expected { morning: 700, outside: 1000, …(1) } to deeply equal { morning: 840, outside: 1200, …(1) }
+   × יעדי המשבצות נגזרים מהיעד היומי > ערך חסר נשאר חסר ולא הופך לאפס 1ms
+     → expected { morning: 700, outside: 1000, …(1) } to deeply equal { morning: null, outside: null, …(1) }
+   × יעדי המשבצות נגזרים מהיעד היומי > היעד שבתוקף בתאריך קובע, ושינוי יעד לא משנה ימים קודמים 0ms
+     → expected 2500 to be 3200 // Object.is equality
+   × יעדי המשבצות נגזרים מהיעד היומי > תכנון ביעד 3,200: הסך היומי המתוכנן עולה ומתקרב ליעד החדש 37ms
+     → expected 2489.404285714286 to be greater than 2789.404285714286
+   × יעדי המשבצות נגזרים מהיעד היומי > תכנון ביעד 1,900: הסך היומי המתוכנן יורד ומתקרב ליעד החדש 16ms
+     → expected 2489.404285714286 to be less than 2189.404285714286
+   × יעדי המשבצות נגזרים מהיעד היומי > יעד שנכנס לתוקף באמצע השבוע משפיע רק מאותו יום 12ms
+     → expected [ { date: '2026-10-08', …(4) }, …(2) ] to not deeply equal [ { date: '2026-10-08', …(4) }, …(2) ]
+   ✓ יעדי המשבצות נגזרים מהיעד היומי > בלי יעד יומי ידוע: מתכננים מנה רגילה (×1) ולא מכוונים ליעד אפס 6ms
+   × יעדי המשבצות נגזרים מהיעד היומי > האפליקציה מעבירה את היעדים למנוע 4ms
+     → expected undefined to be [ { kcal: 2500, …(2) } ] // Object.is equality
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 19 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/engine/sweep.test.ts > שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > אלרגיה שנוספה: ארוחה מתוכננת שמכילה את האלרגן מוחלפת, ואף ארוחה מתוכננת לא נשארת מפרה
+AssertionError: expected 'toast_eggs' not to be 'toast_eggs' // Object.is equality
+ ❯ src/engine/sweep.test.ts:34:34
+     32|     const next = setProfileState(s, { allergies: ['egg'] }, TODAY)
+     33|     const morning = next.plan.find((p) => p.date === TODAY && p.slot =…
+     34|     expect(morning.recipeId).not.toBe('toast_eggs')
+       |                                  ^
+     35|     expect(morning.status).toBe('planned')
+     36|     for (const p of plannedFrom(next, TODAY)) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > ארוחות שדווחו נשארות כמו שהן, גם כשהן מכילות את האלרגן; ארוחות שלא מפרות לא זזות
+AssertionError: expected 'egg_sandwich' not to be 'egg_sandwich' // Object.is equality
+ ❯ src/engine/sweep.test.ts:56:103
+     54|       expect(next.plan.find((x) => x.date === p.date && x.slot === p.s…
+     55|     }
+     56|     expect(next.plan.find((p) => p.date === addDays(TODAY, 3) && p.slo…
+       |                                                                                                       ^
+     57|     expect(next.log).toBe(s.log)
+     58|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > כשאין חלופה שעומדת באילוצים, הארוחה המפרה מוסרת ולא נשארת בשקט
+AssertionError: expected [ { date: '2026-10-04', …(4) }, …(1) ] to deeply equal [ { date: '2026-10-04', …(4) } ]
+
+- Expected
++ Received
+
+  [
+    {
+      "date": "2026-10-04",
+      "multiplier": 1,
++     "recipeId": "toast_eggs",
++     "slot": "morning",
++     "status": "planned",
++   },
++   {
++     "date": "2026-10-04",
++     "multiplier": 1,
+      "recipeId": "egg_sandwich",
+      "slot": "evening",
+      "status": "eaten",
+    },
+  ]
+
+ ❯ src/engine/sweep.test.ts:71:22
+     69|     const plan = [meal(TODAY, 'morning', 'toast_eggs'), meal(TODAY, 'e…
+     70|     const res = enforceConstraints(plan, only, ctx, TODAY)
+     71|     expect(res.plan).toEqual([plan[1]])
+       |                      ^
+     72|     expect(res.changes).toEqual([{ date: TODAY, slot: 'morning', from:…
+     73|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > הפרדת בשר וחלב שהוגדרה אחרי התכנון: ארוחה חלבית מתוכננת בתוך זמן ההמתנה מוחלפת
+AssertionError: expected 'pasta_tomato' not to be 'pasta_tomato' // Object.is equality
+ ❯ src/engine/sweep.test.ts:83:34
+     81|     expect(next.plan.find((p) => p.date === TODAY && p.slot === 'outsi…
+     82|     const evening = next.plan.find((p) => p.date === TODAY && p.slot =…
+     83|     expect(evening.recipeId).not.toBe('pasta_tomato')
+       |                                  ^
+     84|     expect(kosherOf(byId(evening.recipeId).items)).not.toBe('dairy')
+     85|     for (const d of Array.from({ length: 7 }, (_, i) => addDays(TODAY,…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > בשרי שכבר נאכל נשאר, והחלבי המתוכנן אחריו מוחלף; חלבי שכבר נאכל נשאר, והבשרי המתוכנן לפניו מוחלף
+AssertionError: expected 'dairy' not to be 'dairy' // Object.is equality
+ ❯ src/engine/sweep.test.ts:95:110
+     93|     const a = setProfileState(stateWith([eatenMeat, meal(TODAY, 'eveni…
+     94|     expect(a.plan.find((p) => p.date === TODAY && p.slot === 'outside'…
+     95|     expect(kosherOf(byId(a.plan.find((p) => p.date === TODAY && p.slot…
+       |                                                                                                              ^
+     96| 
+     97|     const eatenDairy = meal(TODAY, 'evening', 'pasta_tomato', 'eaten')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > שינוי שעת ארוחה שמכניס ארוחה חלבית לזמן ההמתנה מחליף אותה
+AssertionError: expected 'dairy' not to be 'dairy' // Object.is equality
+ ❯ src/engine/sweep.test.ts:113:113
+    111|     expect(enforceConstraints(s.plan, RECIPES, rankCtx(s), TODAY).chan…
+    112|     const next = setProfileState(s, { mealTimes: { ...s.profile.mealTi…
+    113|     expect(kosherOf(byId(next.plan.find((p) => p.date === TODAY && p.s…
+       |                                                                                                                 ^
+    114|   })
+    115| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > תכנון מחדש מתחשב בבשרי שכבר נאכל באותו יום
+AssertionError: 2026-10-07: expected 'dairy' not to be 'dairy' // Object.is equality
+ ❯ src/engine/sweep.test.ts:122:116
+    120|     const week = generateWeek(TODAY, RECIPES, ctx, keep)
+    121|     for (const k of keep) expect(week.find((p) => p.date === k.date &&…
+    122|     for (const p of week.filter((x) => x.slot === 'evening')) expect(k…
+       |                                                                                                                    ^
+    123|   })
+    124| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > שינוי אילוצים מתכנן מחדש ארוחות מתוכננות שמפרות אותם > רשימת הקניות שנגזרת מהתכנון מתעדכנת: המצרך האלרגני יוצא, ורשימה מאושרת מקבלת הפרש לאישור
+AssertionError: egg: expected [ 'egg' ] to not include 'egg'
+ ❯ src/engine/sweep.test.ts:137:81
+    135|     const next = setProfileState({ ...s, shopping: { ...s.shopping, co…
+    136|     const after = generateShopping(next.plan, RECIPES, next.pantry).to…
+    137|     for (const l of after) expect(FOOD_BY_ID[l.foodId].allergens, l.fo…
+       |                                                                                 ^
+    138|     expect(diffShopping(next.shopping.confirmed!, after).removed.some(…
+    139|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > טקסט חופשי נבדק מול האילוצים > מאכל מהמאגר שמכיל אלרגן מסומן באותו נוסח של המסלול המובנה
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/engine/sweep.test.ts:148:18
+    146|     const d = parseFood('אכלתי שלושה משולשים וקולה', RECIPES)
+    147|     const c = checkDraft(d.lines, profile({ allergies: ['milk'] }))
+    148|     expect(c.ok).toBe(false)
+       |                  ^
+    149|     expect(c.reasons).toEqual(['מכיל חלב'])
+    150|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > טקסט חופשי נבדק מול האילוצים > מנה מורכבת: אותן סיבות כמו בבדיקת המתכון עצמו
+AssertionError: expected { ok: true, reasons: [] } to deeply equal { ok: false, reasons: [ …(2) ] }
+
+- Expected
++ Received
+
+  {
+-   "ok": false,
+-   "reasons": [
+-     "מכיל ביצים",
+-     "מכיל שומשום",
+-   ],
++   "ok": true,
++   "reasons": [],
+  }
+
+ ❯ src/engine/sweep.test.ts:155:36
+    153|     const p = profile({ allergies: ['egg', 'sesame'] })
+    154|     const d = parseFood('בא לי סביח', RECIPES)
+    155|     expect(checkDraft(d.lines, p)).toEqual(checkRecipe(byId('out_sabic…
+       |                                    ^
+    156|     expect(checkDraft(d.lines, p).ok).toBe(false)
+    157|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > טקסט חופשי נבדק מול האילוצים > ״בלי״ שמסיר את הרכיב האלרגני מסיר גם את האזהרה
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/engine/sweep.test.ts:161:70
+    159|   it('״בלי״ שמסיר את הרכיב האלרגני מסיר גם את האזהרה', () => {
+    160|     const p = profile({ allergies: ['sesame'] })
+    161|     expect(checkDraft(parseFood('אכלתי סביח', RECIPES).lines, p).ok).t…
+       |                                                                      ^
+    162|     const without = parseFood('אכלתי סביח בלי טחינה', RECIPES)
+    163|     const stillSesame = without.lines.flatMap((l) => l.parts ?? []).so…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > טקסט חופשי נבדק מול האילוצים > בשר וחלב באותה ארוחה בטקסט חופשי
+AssertionError: expected [] to deeply equal [ 'בשר וחלב באותה ארוחה' ]
+
+- Expected
++ Received
+
+- [
+-   "בשר וחלב באותה ארוחה",
+- ]
++ []
+
+ ❯ src/engine/sweep.test.ts:170:73
+    168|     const d = parseFood('אכלתי פיתה שווארמה וטוסט גבינה', RECIPES)
+    169|     expect(d.lines).toHaveLength(2)
+    170|     expect(checkDraft(d.lines, profile({ allergies: 'none' })).reasons…
+       |                                                                         ^
+    171|   })
+    172| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > יעדי המשבצות נגזרים מהיעד היומי > יעד אחר: אותה חלוקה יחסית
+AssertionError: expected { morning: 700, outside: 1000, …(1) } to deeply equal { morning: 840, outside: 1200, …(1) }
+
+- Expected
++ Received
+
+  {
+-   "evening": 960,
+-   "morning": 840,
+-   "outside": 1200,
++   "evening": 800,
++   "morning": 700,
++   "outside": 1000,
+  }
+
+ ❯ src/engine/sweep.test.ts:194:34
+    192|   })
+    193|   it('יעד אחר: אותה חלוקה יחסית', () => {
+    194|     expect(slotTargets(p, 3000)).toEqual({ morning: 840, outside: 1200…
+       |                                  ^
+    195|     expect(slotTargets(p, 2000)).toEqual({ morning: 560, outside: 800,…
+    196|     const t = slotTargets(p, 3200)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > יעדי המשבצות נגזרים מהיעד היומי > ערך חסר נשאר חסר ולא הופך לאפס
+AssertionError: expected { morning: 700, outside: 1000, …(1) } to deeply equal { morning: null, outside: null, …(1) }
+
+- Expected
++ Received
+
+  {
+-   "evening": null,
+-   "morning": null,
+-   "outside": null,
++   "evening": 800,
++   "morning": 700,
++   "outside": 1000,
+  }
+
+ ❯ src/engine/sweep.test.ts:200:34
+    198|   })
+    199|   it('ערך חסר נשאר חסר ולא הופך לאפס', () => {
+    200|     expect(slotTargets(p, null)).toEqual({ morning: null, outside: nul…
+       |                                  ^
+    201|     expect(slotTargets(p, Number.NaN)).toEqual({ morning: null, outsid…
+    202|     expect(slotTargets(p, 0)).toEqual({ morning: null, outside: null, …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > יעדי המשבצות נגזרים מהיעד היומי > היעד שבתוקף בתאריך קובע, ושינוי יעד לא משנה ימים קודמים
+AssertionError: expected 2500 to be 3200 // Object.is equality
+
+- Expected
++ Received
+
+- 3200
++ 2500
+
+ ❯ src/engine/sweep.test.ts:211:49
+    209|     const goals = [{ kcal: 2500, effectiveFrom: TODAY, setAt: '2026-10…
+    210|     expect(dailyGoal(goals, addDays(TODAY, 2))).toBe(2500)
+    211|     expect(dailyGoal(goals, addDays(TODAY, 3))).toBe(3200)
+       |                                                 ^
+    212|   })
+    213|   it('תכנון ביעד 3,200: הסך היומי המתוכנן עולה ומתקרב ליעד החדש', () =…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > יעדי המשבצות נגזרים מהיעד היומי > תכנון ביעד 3,200: הסך היומי המתוכנן עולה ומתקרב ליעד החדש
+AssertionError: expected 2489.404285714286 to be greater than 2789.404285714286
+ ❯ src/engine/sweep.test.ts:216:24
+    214|     const base = generateWeek(TODAY, RECIPES, ctxFor(2500))
+    215|     const high = generateWeek(TODAY, RECIPES, ctxFor(3200))
+    216|     expect(mean(high)).toBeGreaterThan(mean(base) + 300)
+       |                        ^
+    217|     expect(Math.abs(mean(high) - 3200)).toBeLessThan(3200 * 0.2)
+    218|     for (let i = 0; i < 7; i++) expect(Math.abs(dayTotal(high, addDays…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > יעדי המשבצות נגזרים מהיעד היומי > תכנון ביעד 1,900: הסך היומי המתוכנן יורד ומתקרב ליעד החדש
+AssertionError: expected 2489.404285714286 to be less than 2189.404285714286
+ ❯ src/engine/sweep.test.ts:223:23
+    221|     const base = generateWeek(TODAY, RECIPES, ctxFor(2500))
+    222|     const low = generateWeek(TODAY, RECIPES, ctxFor(1900))
+    223|     expect(mean(low)).toBeLessThan(mean(base) - 300)
+       |                       ^
+    224|     expect(Math.abs(mean(low) - 1900)).toBeLessThan(1900 * 0.2)
+    225|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > יעדי המשבצות נגזרים מהיעד היומי > יעד שנכנס לתוקף באמצע השבוע משפיע רק מאותו יום
+AssertionError: expected [ { date: '2026-10-08', …(4) }, …(2) ] to not deeply equal [ { date: '2026-10-08', …(4) }, …(2) ]
+
+Compared values have no visual difference.
+
+ ❯ src/engine/sweep.test.ts:231:64
+    229|     expect(generateDay(addDays(TODAY, 1), RECIPES, mixed)).toEqual(gen…
+    230|     expect(generateDay(addDays(TODAY, 4), RECIPES, mixed)).toEqual(gen…
+    231|     expect(generateDay(addDays(TODAY, 4), RECIPES, mixed)).not.toEqual…
+       |                                                                ^
+    232|   })
+    233|   it('בלי יעד יומי ידוע: מתכננים מנה רגילה (×1) ולא מכוונים ליעד אפס',…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/19]⎯
+
+ FAIL  src/engine/sweep.test.ts > יעדי המשבצות נגזרים מהיעד היומי > האפליקציה מעבירה את היעדים למנוע
+AssertionError: expected undefined to be [ { kcal: 2500, …(2) } ] // Object.is equality
+
+- Expected: 
+[
+  {
+    "effectiveFrom": "2026-10-04",
+    "kcal": 2500,
+    "setAt": "2026-10-04T08:00:00.000Z",
+  },
+]
+
++ Received: 
+undefined
+
+ ❯ src/engine/sweep.test.ts:240:30
+    238|   it('האפליקציה מעבירה את היעדים למנוע', () => {
+    239|     const s = initialState(NOW)
+    240|     expect(rankCtx(s).goals).toBe(s.goals)
+       |                              ^
+    241|   })
+    242| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/19]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  19 failed | 6 passed (25)
+   Start at  19:16:21
+   Duration  916ms (transform 203ms, setup 0ms, collect 258ms, tests 206ms, environment 0ms, prepare 135ms)
+
