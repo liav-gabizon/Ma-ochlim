@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FOODS } from '../data/foods'
+import { checkDraft } from '../engine/constraints'
 import { localDate, localMinutes, hhmmToMinutes } from '../engine/dates'
 import { calcItem, displayKcal } from '../engine/nutrition'
 import { applyAnswer, draftTotal, parseFood, type Draft, type DraftLine } from '../engine/parse'
@@ -95,6 +96,9 @@ export function FreeTextSheet({ state, actions, onClose, initialText = '', onLog
   )
 
   const total = draft ? draftTotal(draft.lines) : null
+  // אותה בדיקת אילוצים כמו בכרטיס הארוחה; מחושבת מחדש בכל שינוי בשורות הטיוטה
+  const constraint = draft ? checkDraft(draft.lines, state.profile) : null
+  const blocked = !!constraint && !constraint.ok
   const title = text.trim().replace(/^(אכלתי|שתיתי|בא לי|מתחשק לי|רוצה)\s*/, '') || 'אוכל שנוסף'
 
   const confirmAte = (mode: 'replace' | 'add') => {
@@ -111,7 +115,9 @@ export function FreeTextSheet({ state, actions, onClose, initialText = '', onLog
   const saveForPlan = (asFavorite: boolean) => {
     if (!draft) return
     actions.addIdea(title)
-    if (asFavorite || slot !== 'none') {
+    // אילוצים קודמים: טיוטה שמפרה אותם לא משובצת לתכנון (אפשר עדיין לשמור אותה כרעיון)
+    const planSlot = blocked ? 'none' : slot
+    if (asFavorite || planSlot !== 'none') {
       const items = draft.lines.flatMap((l) => (l.parts ? l.parts : l.foodId ? [{ foodId: l.foodId, grams: l.grams }] : []))
       // זמן רק אם הוזן; ריק = לא ידוע ולא נכלל ב״עד 30 דקות״
       const total = exactMinutes(totalRaw)
@@ -125,7 +131,7 @@ export function FreeTextSheet({ state, actions, onClose, initialText = '', onLog
       if (r.kind === 'outside') r.slots = ['outside']
       actions.saveCustomRecipe(r)
       if (asFavorite) actions.setFavorite(r.id, true)
-      if (slot !== 'none') actions.replacePlanned(today, slot, r.id, 1, false)
+      if (planSlot !== 'none') actions.replacePlanned(today, planSlot, r.id, 1, false)
     }
     saveDraftText('')
     onClose()
@@ -190,6 +196,7 @@ export function FreeTextSheet({ state, actions, onClose, initialText = '', onLog
               </li>
             ))}
           </ul>
+          {constraint && blocked && <div className="banner warn">לא מתאים לאילוצים שהוגדרו: {constraint.reasons.join(', ')}</div>}
           {draft.unmatched.length > 0 && <p className="muted small">לא זיהיתי: {draft.unmatched.join(', ')}. אפשר להוסיף מהמאגר.</p>}
 
           <label className="field">
@@ -212,7 +219,7 @@ export function FreeTextSheet({ state, actions, onClose, initialText = '', onLog
             <>
               <label className="field">
                 <span>{intent === 'ate' ? 'לאיזו ארוחה זה שייך?' : 'לשבץ לארוחה של היום?'}</span>
-                <select value={slot} onChange={(e) => setSlot(e.target.value as SlotId | 'none')}>
+                <select value={blocked && intent !== 'ate' ? 'none' : slot} disabled={blocked && intent !== 'ate'} onChange={(e) => setSlot(e.target.value as SlotId | 'none')}>
                   <option value="none">{intent === 'ate' ? 'בנוסף, לא במקום ארוחה' : 'לא, רק לשמור'}</option>
                   {SLOTS.filter((s) => plannedToday.some((p) => p.slot === s)).map((s) => (
                     <option key={s} value={s}>{SLOT_LABEL[s]}</option>

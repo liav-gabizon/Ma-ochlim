@@ -3,7 +3,7 @@ import { LOVED_FOODS, LOVED_RECIPES, RECIPES } from './data/recipes'
 import { localDate } from './engine/dates'
 import { calcRecipe } from './engine/nutrition'
 import type { DraftLine } from './engine/parse'
-import { generateWeek } from './engine/plan'
+import { enforceConstraints, generateWeek } from './engine/plan'
 import { replacePlannedState } from './engine/meal'
 import { previewPlan } from './engine/bookPlan'
 import { resolveMergeConflict } from './engine/sync'
@@ -72,12 +72,22 @@ export function initialState(now = new Date()): AppState {
 export function allRecipes(s: AppState): Recipe[] {
   return [...RECIPES, ...s.customRecipes]
 }
-/** שינוי פרופיל כפונקציה טהורה, כדי שאפשר יהיה לבדוק אותו בלי React. */
-export function setProfileState(s: AppState, p: Partial<Profile>, _today: string): AppState {
-  return { ...s, profile: { ...s.profile, ...p } }
+/** שדות פרופיל שמשנים את האילוצים על התכנון: אלרגיות, שעות המתנה בין בשר לחלב, ושעות הארוחות שמהן נגזרת ההמתנה. */
+const CONSTRAINT_KEYS: (keyof Profile)[] = ['allergies', 'meatDairyWaitHours', 'mealTimes']
+
+/**
+ * שינוי פרופיל כפונקציה טהורה. האילוצים קודמים לדירוג גם בתכנון שכבר קיים: כשמשתנה אילוץ,
+ * ארוחות מתוכננות מהיום והלאה שמפרות אותו מוחלפות (או מוסרות כשאין חלופה); ארוחות שדווחו לא משתנות.
+ * רשימת הקניות נגזרת מהתכנון, ורשימה שכבר אושרה מקבלת את ההפרש לאישור בלשונית הקניות.
+ */
+export function setProfileState(s: AppState, p: Partial<Profile>, today: string): AppState {
+  const next: AppState = { ...s, profile: { ...s.profile, ...p } }
+  if (!CONSTRAINT_KEYS.some((k) => k in p)) return next
+  const { plan } = enforceConstraints(next.plan, allRecipes(next), rankCtx(next), today)
+  return { ...next, plan }
 }
 export function rankCtx(s: AppState): RankContext {
-  return { profile: s.profile, prefs: s.prefs, rejections: s.rejections }
+  return { profile: s.profile, prefs: s.prefs, rejections: s.rejections, goals: s.goals }
 }
 
 /** היעד בתוקף בתאריך נתון; שינוי יעד לא משכתב היסטוריה */

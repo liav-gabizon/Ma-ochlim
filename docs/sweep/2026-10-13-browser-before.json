@@ -1,0 +1,219 @@
+{
+  "allergy": {
+    "before": {
+      "today": [
+        "09:00 טוסט וביצים ארוחת בוקר טרם דווח",
+        "14:00 סביח ארוחה בחוץ ✓ נאכלה",
+        "20:00 כריך ביצים ארוחת ערב מתוכננת"
+      ],
+      "eggPlanned": [
+        "2026-10-13/morning/toast_eggs",
+        "2026-10-13/evening/egg_sandwich",
+        "2026-10-14/morning/egg_sandwich",
+        "2026-10-14/evening/egg_avocado_sandwich",
+        "2026-10-15/morning/schnitzel_pita",
+        "2026-10-15/outside/out_hummus_plate",
+        "2026-10-15/evening/hummus_egg_pita",
+        "2026-10-16/outside/out_schnitzel_baguette",
+        "2026-10-17/outside/egg_sandwich",
+        "2026-10-18/morning/bagel_cream",
+        "2026-10-18/evening/toast_eggs",
+        "2026-10-19/outside/out_sausage_toast"
+      ],
+      "shoppingHasEggs": true
+    },
+    "after": {
+      "allergies": [
+        "egg"
+      ],
+      "today": [
+        "09:00 טוסט וביצים ארוחת בוקר טרם דווח",
+        "14:00 סביח ארוחה בחוץ ✓ נאכלה",
+        "20:00 כריך ביצים ארוחת ערב מתוכננת"
+      ],
+      "eggPlanned": [
+        "2026-10-13/morning/toast_eggs",
+        "2026-10-13/evening/egg_sandwich",
+        "2026-10-14/morning/egg_sandwich",
+        "2026-10-14/evening/egg_avocado_sandwich",
+        "2026-10-15/morning/schnitzel_pita",
+        "2026-10-15/outside/out_hummus_plate",
+        "2026-10-15/evening/hummus_egg_pita",
+        "2026-10-16/outside/out_schnitzel_baguette",
+        "2026-10-17/outside/egg_sandwich",
+        "2026-10-18/morning/bagel_cream",
+        "2026-10-18/evening/toast_eggs",
+        "2026-10-19/outside/out_sausage_toast"
+      ],
+      "reportedKept": {
+        "date": "2026-10-13",
+        "slot": "outside",
+        "recipeId": "out_sabich",
+        "multiplier": 1,
+        "status": "eaten"
+      },
+      "slotsFromToday": 21,
+      "warnOnToday": [
+        "לא מתאים לאילוצים שהוגדרו: מכיל ביצים"
+      ],
+      "shoppingDiffBanner": []
+    }
+  },
+  "freeText": {
+    "ate": {
+      "lines": [
+        "סביח"
+      ],
+      "warning": []
+    },
+    "want": {
+      "lines": [
+        "סביח"
+      ],
+      "warning": [],
+      "slotSelect": {
+        "value": "evening",
+        "disabled": false
+      },
+      "todayPlanBefore": [
+        "morning:toast_eggs:planned",
+        "outside:out_sabich:eaten",
+        "evening:egg_sandwich:planned"
+      ],
+      "todayPlanAfter": [
+        "morning:toast_eggs:planned",
+        "outside:out_sabich:eaten",
+        "evening:custom_5d9fba12:planned"
+      ],
+      "eggPlannedAfterSave": [
+        "2026-10-13/morning/toast_eggs",
+        "2026-10-14/morning/egg_sandwich",
+        "2026-10-14/evening/egg_avocado_sandwich",
+        "2026-10-15/morning/schnitzel_pita",
+        "2026-10-15/outside/out_hummus_plate",
+        "2026-10-15/evening/hummus_egg_pita",
+        "2026-10-16/outside/out_schnitzel_baguette",
+        "2026-10-17/outside/egg_sandwich",
+        "2026-10-18/morning/bagel_cream",
+        "2026-10-18/evening/toast_eggs",
+        "2026-10-19/outside/out_sausage_toast",
+        "2026-10-13/evening/custom_5d9fba12"
+      ]
+    }
+  },
+  "goal": {
+    "at2500": {
+      "week": [
+        "13.10",
+        "צפוי כ־2,330 · חסרים כ־170",
+        "14.10",
+        "צפוי כ־2,410",
+        "15.10",
+        "צפוי כ־2,480",
+        "16.10",
+        "צפוי כ־2,430",
+        "17.10",
+        "צפוי כ־2,540",
+        "18.10",
+        "צפוי כ־2,530",
+        "19.10",
+        "צפוי כ־2,550"
+      ],
+      "multipliers": [
+        1,
+        1,
+        1.25,
+        1,
+        1,
+        1,
+        1.25,
+        1,
+        1.25,
+        1,
+        1.5,
+        1,
+        1,
+        1,
+        1.25,
+        1,
+        1.25,
+        1
+      ]
+    },
+    "saved": "נשמר: 3,200 קק״ל ליום החל מ־2026-10-13. ימים קודמים לא משתנים.",
+    "at3200": {
+      "week": [
+        "13.10",
+        "צפוי כ־2,320 · חסרים כ־880",
+        "14.10",
+        "צפוי כ־2,470 · חסרים כ־730",
+        "15.10",
+        "צפוי כ־2,580 · חסרים כ־620",
+        "16.10",
+        "צפוי כ־2,410 · חסרים כ־790",
+        "17.10",
+        "צפוי כ־2,530 · חסרים כ־670",
+        "18.10",
+        "צפוי כ־2,460 · חסרים כ־740",
+        "19.10",
+        "צפוי כ־2,490 · חסרים כ־710"
+      ],
+      "multipliers": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1.25,
+        1,
+        1.25,
+        1,
+        1.25,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1.25,
+        1
+      ],
+      "eggPlanned": [],
+      "reportedKept": {
+        "date": "2026-10-13",
+        "slot": "outside",
+        "recipeId": "out_sabich",
+        "multiplier": 1,
+        "status": "eaten"
+      }
+    },
+    "afterReload": {
+      "week": [
+        "13.10",
+        "צפוי כ־2,320 · חסרים כ־880",
+        "14.10",
+        "צפוי כ־2,470 · חסרים כ־730",
+        "15.10",
+        "צפוי כ־2,580 · חסרים כ־620",
+        "16.10",
+        "צפוי כ־2,410 · חסרים כ־790",
+        "17.10",
+        "צפוי כ־2,530 · חסרים כ־670",
+        "18.10",
+        "צפוי כ־2,460 · חסרים כ־740",
+        "19.10",
+        "צפוי כ־2,490 · חסרים כ־710"
+      ]
+    }
+  },
+  "captureProbe": {
+    "console": true,
+    "pageError": true,
+    "external": true
+  },
+  "problems": {
+    "console": [],
+    "pageErrors": [],
+    "external": []
+  }
+}

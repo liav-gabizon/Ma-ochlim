@@ -15,17 +15,24 @@ export function allergenLabel(id: string) {
 }
 
 /** אילוצי אלרגיות וכשרות קודמים לכל ניקוד העדפות (פרק 8). */
-export function checkRecipe(r: Recipe, profile: Profile): ConstraintResult {
+export function checkItems(items: MealItem[], profile: Profile): ConstraintResult {
   const reasons: string[] = []
-  if (kosherOf(r.items) === 'conflict') reasons.push('בשר וחלב באותה ארוחה')
+  if (kosherOf(items) === 'conflict') reasons.push('בשר וחלב באותה ארוחה')
   if (Array.isArray(profile.allergies)) {
-    const found = allergensOf(r.items)
+    const found = allergensOf(items)
     for (const a of profile.allergies) if (found.has(a)) reasons.push(`מכיל ${allergenLabel(a)}`)
   }
   return { ok: reasons.length === 0, reasons }
 }
 
-/** שלד זמני לפני התיקון: משקף את ההתנהגות הקיימת (טקסט חופשי לא נבדק מול האילוצים). */
-export function checkDraft(_lines: { foodId?: string; parts?: MealItem[]; grams: number }[], _profile: Profile): ConstraintResult {
-  return { ok: true, reasons: [] }
+export function checkRecipe(r: Recipe, profile: Profile): ConstraintResult {
+  return checkItems(r.items, profile)
+}
+
+/**
+ * אותה בדיקה לטיוטה של טקסט חופשי: כל השורות יחד הן ארוחה אחת.
+ * מנה מורכבת נבדקת לפי הרכיבים שנשארו בה (אחרי ״בלי X״), מאכל בודד לפי הרשומה במאגר.
+ */
+export function checkDraft(lines: { foodId?: string; parts?: MealItem[]; grams: number }[], profile: Profile): ConstraintResult {
+  return checkItems(lines.flatMap((l) => l.parts ?? (l.foodId ? [{ foodId: l.foodId, grams: l.grams }] : [])), profile)
 }
