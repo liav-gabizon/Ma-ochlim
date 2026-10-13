@@ -3,12 +3,12 @@ import { describe, expect, it } from 'vitest'
 import { FOOD_BY_ID } from '../data/foods'
 import { RECIPES } from '../data/recipes'
 import { defaultProfile, initialState, rankCtx, setProfileState } from '../store'
-import type { AppState, PlannedMeal, Profile, Recipe, SlotId } from '../types'
+import type { AppState, LogEntry, PlannedMeal, Profile, Recipe, SlotId } from '../types'
 import { checkDraft, checkRecipe } from './constraints'
 import { addDays } from './dates'
 import { calcRecipe, kosherOf } from './nutrition'
 import { parseFood } from './parse'
-import { enforceConstraints, generateDay, generateWeek, planViolations } from './plan'
+import { draftViolations, enforceConstraints, fillMissingSlots, generateDay, generateWeek, planViolations } from './plan'
 import { diffShopping, generateShopping } from './shopping'
 import type { RankContext } from './swaps'
 import { dailyGoal, slotTargets } from './targets'
@@ -240,3 +240,115 @@ describe('יעדי המשבצות נגזרים מהיעד היומי', () => {
     expect(rankCtx(s).goals).toBe(s.goals)
   })
 })
+
+describe('ממצאי הסקירה העצמאית (13.10.2026)', () => {
+  const logOf = (id: string, names: string[]): LogEntry => ({
+    id, idemKey: id, localDate: TODAY, timezone: 'Asia/Jerusalem', eatenAt: NOW.toISOString(), loggedAt: NOW.toISOString(), title: names.join(' '),
+    slot: 'outside', portion: 1, version: 1, items: names.map((name) => ({ name, grams: 100, kcal: 100, protein: 1, source: 'estimate' as const })),
+  })
+  // תכנון טרי היה בוחר בחוץ פלאפל (אהוב, פרווה) ואז ערב חלבי; בתכנון האמיתי הצהריים בשריים
+  const dairyOnly: Recipe[] = [byId('out_shawarma_lafa'), byId('out_falafel'), byId('pasta_tomato'), byId('toast_eggs')]
+
+  it('1. השלמת משבצת חסרה מתחשבת בארוחות האמיתיות של היום: אחרי בשרי מתוכנן לא נוסף חלבי, והמשבצת נשארת ריקה כשאין חלופה', () => {
+    const profile = { ...defaultProfile(), allergies: 'none' as const, meatDairyWaitHours: 7 }
+    const ctx: RankContext = { profile, prefs: { out_falafel: 'love' }, rejections: {} }
+    const plan = [meal(TODAY, 'outside', 'out_shawarma_lafa')]
+    const filled = fillMissingSlots(TODAY, plan, dairyOnly, ctx)
+    expect(filled.filter((p) => p.date === TODAY && p.slot === 'evening')).toEqual([])
+    // הבוקר (לפני הבשרי) כן מתמלא, והארוחה הקיימת לא זזה
+    expect(filled.find((p) => p.date === TODAY && p.slot === 'morning')?.recipeId).toBe('toast_eggs')
+    expect(filled.find((p) => p.date === TODAY && p.slot === 'outside')).toBe(plan[0])
+    // עם המאגר המלא המשבצת מתמלאת במנה שאינה חלבית
+    const full = fillMissingSlots(TODAY, plan, RECIPES, ctx)
+    expect(kosherOf(byId(full.find((p) => p.date === TODAY && p.slot === 'evening')!.recipeId).items)).not.toBe('dairy')
+    for (const d of Array.from({ length: 7 }, (_, i) => addDays(TODAY, i))) {
+      const day = full.filter((p) => p.date === d)
+      expect(day, d).toHaveLength(3)
+      for (const p of day) expect(planViolations(p, day, RECIPES, ctx), `${d} ${p.slot}`).toEqual([])
+    }
+    // תכנון מלא לא משתנה, ואותו אובייקט חוזר
+    expect(fillMissingSlots(TODAY, full, RECIPES, ctx)).toBe(full)
+  })
+
+  it('2. ערך לא תקין בשעות ההמתנה או בשעת ארוחה לא נשמר ולא נוגע בתכנון', () => {
+    const s = stateWith([meal(TODAY, 'outside', 'out_shawarma_lafa'), meal(TODAY, 'evening', 'pasta_tomato')], { meatDairyWaitHours: 5 })
+    for (const bad of [Number.NaN, -1, Number.POSITIVE_INFINITY, 'abc' as unknown as number]) {
+      const next = setProfileState(s, { meatDairyWaitHours: bad }, TODAY)
+      expect(next.profile.meatDairyWaitHours).toBe(5)
+      expect(next.plan).toBe(s.plan)
+    }
+    for (const bad of ['', '1', '25:00', '18:7', 'abc']) {
+      const next = setProfileState(s, { mealTimes: { ...s.profile.mealTimes, evening: bad } }, TODAY)
+      expect(next.profile.mealTimes).toEqual(s.profile.mealTimes)
+      expect(next.plan).toBe(s.plan)
+    }
+    // ערך תקין (כולל ביטול ההגדרה) נשמר
+    expect(setProfileState(s, { meatDairyWaitHours: null }, TODAY).profile.meatDairyWaitHours).toBeNull()
+    expect(setProfileState(s, { meatDairyWaitHours: 0.5 }, TODAY).profile.meatDairyWaitHours).toBe(0.5)
+  })
+
+  it('2. שעות המתנה לא תקינות שכבר שמורות אינן ״אין כלל״: חלבי אחרי בשרי באותו יום נחשב הפרה', () => {
+    const ctx: RankContext = { profile: { ...defaultProfile(), allergies: 'none', meatDairyWaitHours: Number.NaN }, prefs: {}, rejections: {} }
+    const day = [meal(TODAY, 'outside', 'out_shawarma_lafa'), meal(TODAY, 'evening', 'pasta_tomato')]
+    expect(planViolations(day[1], day, RECIPES, ctx).length).toBeGreaterThan(0)
+  })
+
+  it('3. ארוחה שהוחלפה: מה שנרשם ביומן קובע את ההמתנה, לא המנה שתוכננה', () => {
+    const swappedMeat = { ...meal(TODAY, 'outside', 'out_falafel', 'swapped'), logId: 'L1' }
+    const base = stateWith([swappedMeat, meal(TODAY, 'evening', 'pasta_tomato')])
+    // תוכנן פלאפל (פרווה), נאכלה שווארמה: הערב החלבי מפר את ההמתנה
+    const ateMeat = { ...base, log: [logOf('L1', [byId('out_shawarma_lafa').name])] }
+    const a = setProfileState(ateMeat, { meatDairyWaitHours: 7 }, TODAY)
+    expect(a.plan.find((p) => p.slot === 'outside' && p.date === TODAY)).toEqual(swappedMeat)
+    expect(kosherOf(byId(a.plan.find((p) => p.date === TODAY && p.slot === 'evening')!.recipeId).items)).not.toBe('dairy')
+    const dayA = ateMeat.plan.filter((p) => p.date === TODAY)
+    expect(planViolations(dayA[2], dayA, RECIPES, { ...rankCtx(ateMeat), profile: { ...ateMeat.profile, meatDairyWaitHours: 7 } }).length).toBeGreaterThan(0)
+    // גם לפי שם של מאכל בודד מהמאגר
+    const ateFood = { ...base, log: [logOf('L1', [FOOD_BY_ID.shawarma_meat.name, FOOD_BY_ID.pita.name])] }
+    expect(setProfileState(ateFood, { meatDairyWaitHours: 7 }, TODAY).plan.find((p) => p.date === TODAY && p.slot === 'evening')!.recipeId).not.toBe('pasta_tomato')
+
+    // תוכננה שווארמה (בשרי), נאכל פלאפל: אין המתנה, והערב החלבי נשאר
+    const swappedParve = { ...meal(TODAY, 'outside', 'out_shawarma_lafa', 'swapped'), logId: 'L2' }
+    const ateParve = { ...stateWith([swappedParve, meal(TODAY, 'evening', 'pasta_tomato')]), log: [logOf('L2', [byId('out_falafel').name])] }
+    expect(setProfileState(ateParve, { meatDairyWaitHours: 7 }, TODAY).plan.find((p) => p.date === TODAY && p.slot === 'evening')!.recipeId).toBe('pasta_tomato')
+    // רישום שנמחק אינו נספר
+    const deleted = { ...ateMeat, log: [{ ...ateMeat.log[0], deleted: true }] }
+    expect(setProfileState(deleted, { meatDairyWaitHours: 7 }, TODAY).plan.find((p) => p.date === TODAY && p.slot === 'evening')!.recipeId).toBe('pasta_tomato')
+  })
+
+  it('3. תכנון מחדש אחרי החלפה לבשרי לא משבץ חלבי בתוך זמן ההמתנה', () => {
+    const s = initialState(NOW)
+    const keep = Array.from({ length: 7 }, (_, i) => ({ ...meal(addDays(TODAY, i), 'outside', 'out_falafel', 'swapped'), logId: `L${i}` }))
+    const log = keep.map((k) => ({ ...logOf(k.logId, [byId('out_shawarma_lafa').name]), localDate: k.date }))
+    const ctx: RankContext = { profile: { ...s.profile, allergies: 'none', meatDairyWaitHours: 7 }, prefs: s.prefs, rejections: {}, log }
+    const week = generateWeek(TODAY, RECIPES, ctx, keep)
+    for (const p of week.filter((x) => x.slot === 'evening')) expect(kosherOf(byId(p.recipeId).items), p.date).not.toBe('dairy')
+  })
+
+  it('4. טיוטת טקסט חופשי נבדקת גם מול זמן ההמתנה של המשבצת שנבחרה', () => {
+    const profile = { ...defaultProfile(), allergies: 'none' as const, meatDairyWaitHours: 7 }
+    const ctx: RankContext = { profile, prefs: {}, rejections: {} }
+    const day = [meal(TODAY, 'morning', 'egg_sandwich'), meal(TODAY, 'outside', 'out_shawarma_lafa', 'eaten'), meal(TODAY, 'evening', 'salmon_rice')]
+    const dairy = parseFood('בא לי טוסט גבינה', RECIPES).lines
+    expect(checkDraft(dairy, profile).ok).toBe(true)
+    expect(draftViolations(dairy, 'evening', day, RECIPES, ctx)).toEqual(['פחות מ־7 שעות אחרי ארוחה בשרית'])
+    // בבוקר, לפני הבשרי: אין הפרה
+    expect(draftViolations(dairy, 'morning', day, RECIPES, ctx)).toEqual([])
+    // טיוטה בשרית לפני ארוחה חלבית מתוכננת
+    const dayDairyEve = [meal(TODAY, 'outside', 'out_falafel'), meal(TODAY, 'evening', 'pasta_tomato')]
+    expect(draftViolations(parseFood('בא לי פיתה שווארמה', RECIPES).lines, 'outside', dayDairyEve, RECIPES, ctx)).toEqual(['פחות מ־7 שעות לפני ארוחה חלבית'])
+    // אלרגיה והמתנה יחד, ובלי שעות המתנה אין בדיקה כזו
+    expect(draftViolations(dairy, 'evening', day, RECIPES, { ...ctx, profile: { ...profile, allergies: ['milk'] } })).toEqual(['מכיל חלב', 'פחות מ־7 שעות אחרי ארוחה בשרית'])
+    expect(draftViolations(dairy, 'evening', day, RECIPES, { ...ctx, profile: { ...profile, meatDairyWaitHours: null } })).toEqual([])
+  })
+
+  it('5. כפילות של אותה משבצת: כל רשומה מתוכננת שמפרה מטופלת, לא רק הראשונה', () => {
+    const ctx: RankContext = { profile: { ...defaultProfile(), allergies: ['egg'] }, prefs: {}, rejections: {} }
+    const plan = [meal(TODAY, 'morning', 'toast_eggs'), meal(TODAY, 'morning', 'egg_sandwich'), { ...meal(TODAY, 'morning', 'bagel_cream', 'eaten') }]
+    const res = enforceConstraints(plan, RECIPES, ctx, TODAY)
+    expect(res.plan.filter((p) => p.status === 'planned' && hasAllergen(p.recipeId, 'egg'))).toEqual([])
+    expect(res.plan).toContainEqual(plan[2])
+    expect(res.changes).toHaveLength(2)
+  })
+})
+

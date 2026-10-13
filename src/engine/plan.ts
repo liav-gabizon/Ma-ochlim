@@ -1,6 +1,6 @@
 import type { PlannedMeal, Recipe, SlotId } from '../types'
 import { SLOTS } from '../types'
-import { checkRecipe } from './constraints'
+import { checkDraft, checkRecipe } from './constraints'
 import { addDays, isSaturday, hhmmToMinutes } from './dates'
 import { kosherOf } from './nutrition'
 import { bestMultiplier, eligible, prefScore, type RankContext } from './swaps'
@@ -151,4 +151,14 @@ export function enforceConstraints(plan: PlannedMeal[], recipes: Recipe[], ctx: 
     }
   }
   return { plan: next, changes }
+}
+
+/** שלדים זמניים לפני התיקון: משקפים את ההתנהגות הקיימת. */
+export function fillMissingSlots(start: string, plan: PlannedMeal[], recipes: Recipe[], ctx: RankContext): PlannedMeal[] {
+  const have = new Set(plan.map((p) => p.date + p.slot))
+  const add = generateWeek(start, recipes, ctx, plan.filter((p) => p.date >= start)).filter((p) => !have.has(p.date + p.slot))
+  return add.length ? [...plan, ...add] : plan
+}
+export function draftViolations(lines: Parameters<typeof checkDraft>[0], _slot: SlotId, _day: PlannedMeal[], _recipes: Recipe[], ctx: RankContext): string[] {
+  return checkDraft(lines, ctx.profile).reasons
 }

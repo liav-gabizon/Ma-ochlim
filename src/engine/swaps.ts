@@ -1,4 +1,4 @@
-import type { GoalVersion, Pref, Profile, Recipe, SlotId } from '../types'
+import type { GoalVersion, LogEntry, Pref, Profile, Recipe, SlotId } from '../types'
 import { checkRecipe } from './constraints'
 import { calcRecipe, type MealCalc } from './nutrition'
 import { isPlannable } from './recipeBook'
@@ -20,6 +20,8 @@ export interface RankContext {
   rejections: Record<string, number>
   /** גרסאות היעד היומי; כשקיימות, יעדי המשבצות נגזרים מהיעד שבתוקף בכל תאריך (ראו targets.ts) */
   goals?: GoalVersion[]
+  /** היומן; נדרש כדי לדעת מה נאכל בפועל בארוחה שהוחלפה (זמן המתנה בין בשר לחלב) */
+  log?: LogEntry[]
 }
 
 export function prefScore(id: string, ctx: RankContext): number {
