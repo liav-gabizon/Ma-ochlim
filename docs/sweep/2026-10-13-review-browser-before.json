@@ -1,0 +1,245 @@
+{
+  "allergy": {
+    "before": {
+      "today": [
+        "09:00 טוסט וביצים ארוחת בוקר טרם דווח",
+        "14:00 סביח ארוחה בחוץ ✓ נאכלה",
+        "20:00 כריך ביצים ארוחת ערב מתוכננת"
+      ],
+      "eggPlanned": [
+        "2026-10-13/morning/toast_eggs",
+        "2026-10-13/evening/egg_sandwich",
+        "2026-10-14/morning/egg_sandwich",
+        "2026-10-14/evening/egg_avocado_sandwich",
+        "2026-10-15/morning/schnitzel_pita",
+        "2026-10-15/outside/out_hummus_plate",
+        "2026-10-15/evening/hummus_egg_pita",
+        "2026-10-16/outside/out_schnitzel_baguette",
+        "2026-10-17/outside/egg_sandwich",
+        "2026-10-18/morning/bagel_cream",
+        "2026-10-18/evening/toast_eggs",
+        "2026-10-19/outside/out_sausage_toast"
+      ],
+      "shoppingHasEggs": true
+    },
+    "after": {
+      "allergies": [
+        "egg"
+      ],
+      "today": [
+        "09:00 יוגורט, גרנולה ובננה ארוחת בוקר טרם דווח",
+        "14:00 סביח ארוחה בחוץ ✓ נאכלה",
+        "20:00 המבורגר ביתי בלחמנייה ארוחת ערב מתוכננת"
+      ],
+      "eggPlanned": [],
+      "reportedKept": {
+        "date": "2026-10-13",
+        "slot": "outside",
+        "recipeId": "out_sabich",
+        "multiplier": 1,
+        "status": "eaten"
+      },
+      "slotsFromToday": 21,
+      "warnOnToday": [],
+      "shoppingDiffBanner": [
+        "התכנון השתנה מאז שאישרת את הרשימה. + לחמנייה + פירות קפואים + בקר טחון מבושל + פרגית מבושלת + גרנולה + פסטה יבשה + תמרים + פלפל + חמאת בוטנים + רוטב עגבניות − בייגל − ביצה − גבינת שמנת − שוקו − שניצל מוכן − אבוקדו − חומוס (ממרח) − מיונז לחם לבן: 2 ← 1 יוגורט: 3 ← 4 סלמון אפוי: 1 ← 2 בננה: 3 ← 6 מלפפון: 6 ← 3 עגבנייה: 6 ← 3 אשר עדכון הרשימה"
+      ]
+    }
+  },
+  "freeText": {
+    "ate": {
+      "lines": [
+        "סביח"
+      ],
+      "warning": [
+        "לא מתאים לאילוצים שהוגדרו: מכיל ביצים"
+      ]
+    },
+    "want": {
+      "lines": [
+        "סביח"
+      ],
+      "warning": [
+        "לא מתאים לאילוצים שהוגדרו: מכיל ביצים"
+      ],
+      "slotSelect": {
+        "value": "none",
+        "disabled": true
+      },
+      "todayPlanBefore": [
+        "morning:yogurt_granola:planned",
+        "outside:out_sabich:eaten",
+        "evening:burger_home:planned"
+      ],
+      "todayPlanAfter": [
+        "morning:yogurt_granola:planned",
+        "outside:out_sabich:eaten",
+        "evening:burger_home:planned"
+      ],
+      "eggPlannedAfterSave": []
+    }
+  },
+  "goal": {
+    "at2500": {
+      "week": [
+        "13.10",
+        "צפוי כ־2,320 · חסרים כ־180",
+        "14.10",
+        "צפוי כ־2,470",
+        "15.10",
+        "צפוי כ־2,580",
+        "16.10",
+        "צפוי כ־2,410",
+        "17.10",
+        "צפוי כ־2,520",
+        "18.10",
+        "צפוי כ־2,560",
+        "19.10",
+        "צפוי כ־2,530"
+      ],
+      "multipliers": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1.25,
+        1,
+        1.25,
+        1,
+        1.25,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1.25,
+        1
+      ]
+    },
+    "saved": "נשמר: 3,200 קק״ל ליום החל מ־2026-10-13. ימים קודמים לא משתנים.",
+    "at3200": {
+      "week": [
+        "13.10",
+        "צפוי כ־2,810 · חסרים כ־390",
+        "14.10",
+        "צפוי כ־3,040 · חסרים כ־160",
+        "15.10",
+        "צפוי כ־3,220",
+        "16.10",
+        "צפוי כ־3,310",
+        "17.10",
+        "צפוי כ־3,120",
+        "18.10",
+        "צפוי כ־3,310",
+        "19.10",
+        "צפוי כ־3,020 · חסרים כ־180"
+      ],
+      "multipliers": [
+        1.25,
+        1,
+        1.25,
+        1.25,
+        1.25,
+        1.25,
+        1.5,
+        1.5,
+        1.25,
+        1.5,
+        1.5,
+        1.25,
+        1.25,
+        1.25,
+        1.25,
+        1.5,
+        1.5,
+        1.25
+      ],
+      "eggPlanned": [],
+      "reportedKept": {
+        "date": "2026-10-13",
+        "slot": "outside",
+        "recipeId": "out_sabich",
+        "multiplier": 1,
+        "status": "eaten"
+      }
+    },
+    "afterReload": {
+      "week": [
+        "13.10",
+        "צפוי כ־2,810 · חסרים כ־390",
+        "14.10",
+        "צפוי כ־3,040 · חסרים כ־160",
+        "15.10",
+        "צפוי כ־3,220",
+        "16.10",
+        "צפוי כ־3,310",
+        "17.10",
+        "צפוי כ־3,120",
+        "18.10",
+        "צפוי כ־3,310",
+        "19.10",
+        "צפוי כ־3,020 · חסרים כ־180"
+      ]
+    }
+  },
+  "review": {
+    "typedNotCommitted": {
+      "wait": 7,
+      "evening": [
+        "burger_home"
+      ]
+    },
+    "committed": {
+      "wait": 7,
+      "evening": [
+        "burger_home"
+      ]
+    },
+    "committedEveningIsDairy": false,
+    "afterInvalid": {
+      "wait": null,
+      "evening": [
+        "burger_home"
+      ],
+      "field": "NaN"
+    },
+    "freeTextWait": {
+      "lines": [
+        "טוסט גבינה"
+      ],
+      "warning": [],
+      "warningForEvening": [],
+      "eveningBeforeSave": [
+        "burger_home"
+      ],
+      "eveningAfterSave": [
+        "custom_d7ecc02f"
+      ]
+    },
+    "refill": {
+      "evening": [
+        "burger_home"
+      ],
+      "isDairy": false,
+      "today": [
+        "09:00 כריך ביצים ארוחת בוקר טרם דווח",
+        "14:00 לאפה שווארמה ארוחה בחוץ טרם דווח",
+        "20:00 המבורגר ביתי בלחמנייה ארוחת ערב מתוכננת"
+      ]
+    }
+  },
+  "captureProbe": {
+    "console": true,
+    "pageError": true,
+    "external": true
+  },
+  "problems": {
+    "console": [
+      "Received NaN for the `%s` attribute. If this is expected, cast the value to a string. value"
+    ],
+    "pageErrors": [],
+    "external": []
+  }
+}

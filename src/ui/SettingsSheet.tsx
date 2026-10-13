@@ -1,13 +1,24 @@
-import { useState } from 'react'
+import { useEffect, useState, type InputHTMLAttributes } from 'react'
 import { ALLERGEN_OPTIONS } from '../engine/constraints'
 import { notificationSupport, showNotification, SLOT_LABEL } from '../notifications'
-import { goalFor, type Actions } from '../store'
+import { goalFor, validHhmm, validWaitHours, type Actions } from '../store'
 import type { Allergen, AppState, Profile, SlotId } from '../types'
 import { SLOTS } from '../types'
 import type { CloudApi } from '../useCloud'
 import { AccountSection, ImportSection } from './AccountSection'
 import { MergeConflicts } from './MergeConflicts'
 import { Sheet } from './common'
+
+/**
+ * שדה שנשמר רק כשההקלדה הסתיימה (יציאה מהשדה או Enter) ורק אם הערך תקין; אחרת חוזר לערך השמור.
+ * שעות ארוחה ושעות המתנה משנות את האילוצים על התכנון, ולכן ערך ביניים בזמן הקלדה לא אמור להחליף ארוחות.
+ */
+function CommitInput({ value, onCommit, ...rest }: { value: string; onCommit: (v: string) => boolean } & Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'onBlur'>) {
+  const [draft, setDraft] = useState(value)
+  useEffect(() => setDraft(value), [value])
+  const commit = () => { if (draft !== value && !onCommit(draft)) setDraft(value) }
+  return <input {...rest} value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={commit} onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
+}
 
 export function SettingsSheet({ state, actions, today, onClose, cloudApi }: { state: AppState; actions: Actions; today: string; onClose: () => void; cloudApi: CloudApi }) {
   const p = state.profile
@@ -73,7 +84,7 @@ export function SettingsSheet({ state, actions, today, onClose, cloudApi }: { st
         {SLOTS.map((s) => (
           <label key={s} className="inline">
             <span>{SLOT_LABEL[s]}</span>
-            <input type="time" value={p.mealTimes[s]} onChange={(e) => actions.setProfile({ mealTimes: { ...p.mealTimes, [s]: e.target.value } as Record<SlotId, string> })} />
+            <CommitInput type="time" value={p.mealTimes[s]} onCommit={(v) => validHhmm(v) && (actions.setProfile({ mealTimes: { ...p.mealTimes, [s]: v } as Record<SlotId, string> }), true)} />
           </label>
         ))}
       </section>
@@ -97,7 +108,12 @@ export function SettingsSheet({ state, actions, today, onClose, cloudApi }: { st
         <p className="muted small">מוצרים ומקומות כשרים, כל התעודות מקובלות. בשר וחלב לא משולבים באותה ארוחה.</p>
         <label className="inline">
           <span>המתנה בין בשר לחלב (שעות, לפי המנהג שלך)</span>
-          <input inputMode="decimal" value={p.meatDairyWaitHours ?? ''} placeholder="לא הוגדר" onChange={(e) => actions.setProfile({ meatDairyWaitHours: e.target.value === '' ? null : Number(e.target.value) })} />
+          <CommitInput inputMode="decimal" value={p.meatDairyWaitHours == null ? '' : String(p.meatDairyWaitHours)} placeholder="לא הוגדר" onCommit={(v) => {
+            const hours = v.trim() === '' ? null : Number(v.trim().replace(',', '.'))
+            if (!validWaitHours(hours)) return false
+            actions.setProfile({ meatDairyWaitHours: hours })
+            return true
+          }} />
         </label>
       </section>
 

@@ -114,6 +114,54 @@ await page.getByRole('heading', { name: 'מה אוכלים' }).waitFor()
 await tab('שבוע וקניות')
 out.goal.afterReload = { week: await weekTotals() }
 
+// 4. ממצאי הסקירה: קלט חלקי בשעות ההמתנה, המתנה בטקסט חופשי, השלמת משבצת חסרה
+const DAIRY = ['toast_eggs', 'yogurt_granola', 'pita_cheese_veg', 'cornflakes_milk', 'bagel_cream', 'pasta_tomato', 'ravioli_sauce', 'cheese_toast', 'yogurt_banana_nuts', 'pb_shake', 'out_cheese_toast', 'out_bourekas', 'out_pizza', 'out_pasta']
+const s4 = await state()
+s4.profile.allergies = 'none'
+s4.profile.meatDairyWaitHours = null
+s4.plan = s4.plan.filter((p) => p.date !== today).concat([
+  { date: today, slot: 'morning', recipeId: 'egg_sandwich', multiplier: 1, status: 'planned' },
+  { date: today, slot: 'outside', recipeId: 'out_shawarma_lafa', multiplier: 1, status: 'planned' },
+  { date: today, slot: 'evening', recipeId: 'pasta_tomato', multiplier: 1, status: 'planned' },
+])
+await page.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, JSON.stringify(s4)])
+await page.reload()
+await page.getByRole('heading', { name: 'מה אוכלים' }).waitFor()
+const evening = async () => { const s = await state(); return { wait: s.profile.meatDairyWaitHours, evening: s.plan.filter((p) => p.date === today && p.slot === 'evening').map((p) => p.recipeId) } }
+await openSettings()
+const waitInput = page.locator('label', { hasText: 'המתנה בין בשר לחלב' }).locator('input')
+await waitInput.click()
+await page.keyboard.type('7')
+await page.waitForTimeout(300)
+out.review = { typedNotCommitted: await evening() }
+await page.keyboard.press('Tab')
+await page.waitForTimeout(300)
+out.review.committed = await evening()
+out.review.committedEveningIsDairy = out.review.committed.evening.some((id) => DAIRY.includes(id))
+await waitInput.fill('abc')
+await page.keyboard.press('Tab')
+await page.waitForTimeout(300)
+out.review.afterInvalid = { ...(await evening()), field: await waitInput.inputValue() }
+await closeSheet()
+// טקסט חופשי: מנה חלבית למשבצת הערב, אחרי צהריים בשריים
+const dairyDraft = await free('בא לי טוסט גבינה')
+await page.locator('.sheet select').selectOption('evening')
+dairyDraft.warningForEvening = await page.locator('.sheet .banner.warn').allInnerTexts()
+const eveningBeforeSave = (await evening()).evening
+await page.getByRole('button', { name: 'שמור לתכנון' }).click()
+dairyDraft.eveningBeforeSave = eveningBeforeSave
+dairyDraft.eveningAfterSave = (await evening()).evening
+out.review.freeTextWait = dairyDraft
+// השלמת משבצת חסרה: מוחקים את ארוחת הערב של היום וטוענים מחדש
+const s5 = await state()
+s5.plan = s5.plan.filter((p) => !(p.date === today && p.slot === 'evening'))
+await page.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, JSON.stringify(s5)])
+await page.reload()
+await page.getByRole('heading', { name: 'מה אוכלים' }).waitFor()
+await page.waitForTimeout(500)
+const refilled = (await evening()).evening
+out.review.refill = { evening: refilled, isDairy: refilled.some((id) => DAIRY.includes(id)), today: await todayRows() }
+
 // הוכחה שהלכידה עובדת: שגיאת קונסול, חריגה ובקשה חיצונית יזומות חייבות להירשם; רק אז היעדר שגיאות למעלה הוא ראיה
 const seen = { console: problems.console.length, pageErrors: problems.pageErrors.length, external: problems.external.length }
 await page.evaluate(() => { console.error('sweep-probe'); setTimeout(() => { throw new Error('sweep-probe-throw') }, 0); fetch('https://probe.invalid/x').catch(() => {}) })

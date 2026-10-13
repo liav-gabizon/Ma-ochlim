@@ -3,12 +3,13 @@ import { LOVED_FOODS, LOVED_RECIPES, RECIPES } from './data/recipes'
 import { localDate } from './engine/dates'
 import { calcRecipe } from './engine/nutrition'
 import type { DraftLine } from './engine/parse'
-import { enforceConstraints, generateWeek } from './engine/plan'
+import { enforceConstraints, fillMissingSlots, generateWeek } from './engine/plan'
 import { replacePlannedState } from './engine/meal'
 import { previewPlan } from './engine/bookPlan'
 import { resolveMergeConflict } from './engine/sync'
 import type { RankContext } from './engine/swaps'
 import type { AppState, GoalVersion, LogEntry, LogItemSnapshot, PlannedMeal, Pref, Profile, Recipe, SlotId } from './types'
+import { SLOTS } from './types'
 
 const KEY = 'ma-ochlim:v1'
 export const TZ_DEFAULT = 'Asia/Jerusalem'
@@ -81,13 +82,23 @@ const CONSTRAINT_KEYS: (keyof Profile)[] = ['allergies', 'meatDairyWaitHours', '
  * רשימת הקניות נגזרת מהתכנון, ורשימה שכבר אושרה מקבלת את ההפרש לאישור בלשונית הקניות.
  */
 export function setProfileState(s: AppState, p: Partial<Profile>, today: string): AppState {
-  const next: AppState = { ...s, profile: { ...s.profile, ...p } }
-  if (!CONSTRAINT_KEYS.some((k) => k in p)) return next
+  const patch = { ...p }
+  // ערך לא תקין (קלט חלקי, NaN) לא נשמר: הוא היה מבטל בשקט את בדיקת ההמתנה או מזיז ארוחות לפי שעה שלא הוקלדה עד הסוף
+  if ('meatDairyWaitHours' in patch && !validWaitHours(patch.meatDairyWaitHours)) delete patch.meatDairyWaitHours
+  if ('mealTimes' in patch && !(patch.mealTimes && SLOTS.every((k) => validHhmm(patch.mealTimes![k])))) delete patch.mealTimes
+  const next: AppState = { ...s, profile: { ...s.profile, ...patch } }
+  if (!CONSTRAINT_KEYS.some((k) => k in patch)) return next
   const { plan } = enforceConstraints(next.plan, allRecipes(next), rankCtx(next), today)
   return { ...next, plan }
 }
+export function validWaitHours(v: unknown): v is number | null {
+  return v === null || (typeof v === 'number' && Number.isFinite(v) && v >= 0)
+}
+export function validHhmm(v: unknown): v is string {
+  return typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v)
+}
 export function rankCtx(s: AppState): RankContext {
-  return { profile: s.profile, prefs: s.prefs, rejections: s.rejections, goals: s.goals }
+  return { profile: s.profile, prefs: s.prefs, rejections: s.rejections, goals: s.goals, log: s.log }
 }
 
 /** היעד בתוקף בתאריך נתון; שינוי יעד לא משכתב היסטוריה */
@@ -240,10 +251,8 @@ export function useAppState() {
     },
     ensureWeek(start: string) {
       update((s) => {
-        const have = new Set(s.plan.map((p) => p.date + p.slot))
-        const week = generateWeek(start, allRecipes(s), rankCtx(s), s.plan.filter((p) => p.date >= start))
-        const add = week.filter((p) => !have.has(p.date + p.slot))
-        return add.length ? { ...s, plan: [...s.plan, ...add] } : s
+        const plan = fillMissingSlots(start, s.plan, allRecipes(s), rankCtx(s))
+        return plan === s.plan ? s : { ...s, plan }
       })
     },
     setDayComplete(date: string, v: boolean) {

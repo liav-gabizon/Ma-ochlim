@@ -33,6 +33,11 @@ export function checkRecipe(r: Recipe, profile: Profile): ConstraintResult {
  * אותה בדיקה לטיוטה של טקסט חופשי: כל השורות יחד הן ארוחה אחת.
  * מנה מורכבת נבדקת לפי הרכיבים שנשארו בה (אחרי ״בלי X״), מאכל בודד לפי הרשומה במאגר.
  */
-export function checkDraft(lines: { foodId?: string; parts?: MealItem[]; grams: number }[], profile: Profile): ConstraintResult {
-  return checkItems(lines.flatMap((l) => l.parts ?? (l.foodId ? [{ foodId: l.foodId, grams: l.grams }] : [])), profile)
+export function checkDraft(lines: DraftLike[], profile: Profile): ConstraintResult {
+  return checkItems(draftItems(lines), profile)
+}
+
+type DraftLike = { foodId?: string; parts?: MealItem[]; grams: number }
+export function draftItems(lines: DraftLike[]): MealItem[] {
+  return lines.flatMap((l) => l.parts ?? (l.foodId ? [{ foodId: l.foodId, grams: l.grams }] : []))
 }

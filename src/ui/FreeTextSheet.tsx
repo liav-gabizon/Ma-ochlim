@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FOODS } from '../data/foods'
 import { checkDraft } from '../engine/constraints'
+import { draftViolations } from '../engine/plan'
 import { localDate, localMinutes, hhmmToMinutes } from '../engine/dates'
 import { calcItem, displayKcal } from '../engine/nutrition'
 import { applyAnswer, draftTotal, parseFood, type Draft, type DraftLine } from '../engine/parse'
 import { SLOT_LABEL } from '../notifications'
-import { allRecipes, newIdemKey, snapshotDraft, type Actions } from '../store'
+import { allRecipes, newIdemKey, rankCtx, snapshotDraft, type Actions } from '../store'
 import type { AppState, Recipe, SlotId } from '../types'
 import { SLOTS } from '../types'
 import { Certainty, Sheet } from './common'
@@ -97,8 +98,14 @@ export function FreeTextSheet({ state, actions, onClose, initialText = '', onLog
 
   const total = draft ? draftTotal(draft.lines) : null
   // אותה בדיקת אילוצים כמו בכרטיס הארוחה; מחושבת מחדש בכל שינוי בשורות הטיוטה
-  const constraint = draft ? checkDraft(draft.lines, state.profile) : null
-  const blocked = !!constraint && !constraint.ok
+  // אלרגיה או בשר וחלב באותה מנה: לא תלוי במשבצת. זמן המתנה: תלוי במשבצת שנבחרה ובשאר ארוחות היום.
+  const itemBlocked = !!draft && !checkDraft(draft.lines, state.profile).ok
+  const reasons = !draft
+    ? []
+    : slot === 'none' || itemBlocked
+      ? checkDraft(draft.lines, state.profile).reasons
+      : draftViolations(draft.lines, slot, state.plan.filter((p) => p.date === today), allRecipes(state), rankCtx(state))
+  const blocked = reasons.length > 0
   const title = text.trim().replace(/^(אכלתי|שתיתי|בא לי|מתחשק לי|רוצה)\s*/, '') || 'אוכל שנוסף'
 
   const confirmAte = (mode: 'replace' | 'add') => {
@@ -196,7 +203,7 @@ export function FreeTextSheet({ state, actions, onClose, initialText = '', onLog
               </li>
             ))}
           </ul>
-          {constraint && blocked && <div className="banner warn">לא מתאים לאילוצים שהוגדרו: {constraint.reasons.join(', ')}</div>}
+          {blocked && <div className="banner warn">לא מתאים לאילוצים שהוגדרו: {reasons.join(', ')}</div>}
           {draft.unmatched.length > 0 && <p className="muted small">לא זיהיתי: {draft.unmatched.join(', ')}. אפשר להוסיף מהמאגר.</p>}
 
           <label className="field">
@@ -219,7 +226,7 @@ export function FreeTextSheet({ state, actions, onClose, initialText = '', onLog
             <>
               <label className="field">
                 <span>{intent === 'ate' ? 'לאיזו ארוחה זה שייך?' : 'לשבץ לארוחה של היום?'}</span>
-                <select value={blocked && intent !== 'ate' ? 'none' : slot} disabled={blocked && intent !== 'ate'} onChange={(e) => setSlot(e.target.value as SlotId | 'none')}>
+                <select value={itemBlocked && intent !== 'ate' ? 'none' : slot} disabled={itemBlocked && intent !== 'ate'} onChange={(e) => setSlot(e.target.value as SlotId | 'none')}>
                   <option value="none">{intent === 'ate' ? 'בנוסף, לא במקום ארוחה' : 'לא, רק לשמור'}</option>
                   {SLOTS.filter((s) => plannedToday.some((p) => p.slot === s)).map((s) => (
                     <option key={s} value={s}>{SLOT_LABEL[s]}</option>

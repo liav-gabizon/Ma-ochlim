@@ -100,7 +100,7 @@ describe('שינוי אילוצים מתכנן מחדש ארוחות מתוכנ�
     expect(kosherOf(byId(b.plan.find((p) => p.date === TODAY && p.slot === 'outside')!.recipeId).items)).not.toBe('meat')
   })
 
-  it('ארוחה שדולגה או הוחלפה לא נאכלה, ולכן לא יוצרת זמן המתנה', () => {
+  it('ארוחה שדולגה לא נאכלה, ולכן לא יוצרת זמן המתנה', () => {
     const s = stateWith([meal(TODAY, 'outside', 'out_shawarma_lafa', 'skipped'), meal(TODAY, 'evening', 'pasta_tomato')])
     const next = setProfileState(s, { meatDairyWaitHours: 7 }, TODAY)
     expect(next.plan.find((p) => p.date === TODAY && p.slot === 'evening')!.recipeId).toBe('pasta_tomato')

@@ -184,6 +184,56 @@
       ]
     }
   },
+  "review": {
+    "typedNotCommitted": {
+      "wait": null,
+      "evening": [
+        "pasta_tomato"
+      ]
+    },
+    "committed": {
+      "wait": 7,
+      "evening": [
+        "burger_home"
+      ]
+    },
+    "committedEveningIsDairy": false,
+    "afterInvalid": {
+      "wait": 7,
+      "evening": [
+        "burger_home"
+      ],
+      "field": "7"
+    },
+    "freeTextWait": {
+      "lines": [
+        "טוסט גבינה"
+      ],
+      "warning": [
+        "לא מתאים לאילוצים שהוגדרו: פחות מ־7 שעות אחרי ארוחה בשרית"
+      ],
+      "warningForEvening": [
+        "לא מתאים לאילוצים שהוגדרו: פחות מ־7 שעות אחרי ארוחה בשרית"
+      ],
+      "eveningBeforeSave": [
+        "burger_home"
+      ],
+      "eveningAfterSave": [
+        "burger_home"
+      ]
+    },
+    "refill": {
+      "evening": [
+        "burger_home"
+      ],
+      "isDairy": false,
+      "today": [
+        "09:00 כריך ביצים ארוחת בוקר טרם דווח",
+        "14:00 לאפה שווארמה ארוחה בחוץ טרם דווח",
+        "20:00 המבורגר ביתי בלחמנייה ארוחת ערב מתוכננת"
+      ]
+    }
+  },
   "captureProbe": {
     "console": true,
     "pageError": true,
