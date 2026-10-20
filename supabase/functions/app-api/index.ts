@@ -1,14 +1,26 @@
 // פעולות חשבון שדורשות הרשאת שרת: תזמון התראת ניסיון ומחיקת חשבון.
 import { createClient } from 'npm:@supabase/supabase-js@2.58.0'
 
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+// CORS מוגבל לדומיין של האפליקציה ולפיתוח מקומי. אפשר להוסיף דומיינים ב-ALLOWED_ORIGINS (מופרד בפסיקים).
+const ALLOWED_ORIGINS = new Set([
+  'https://ma-ochlim-one.vercel.app',
+  ...(Deno.env.get('ALLOWED_ORIGINS') ?? '').split(',').map((o) => o.trim()).filter(Boolean),
+])
+const isAllowedOrigin = (origin: string) =>
+  ALLOWED_ORIGINS.has(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+const corsFor = (req: Request): Record<string, string> => {
+  const origin = req.headers.get('Origin') ?? ''
+  return {
+    'Access-Control-Allow-Origin': isAllowedOrigin(origin) ? origin : 'https://ma-ochlim-one.vercel.app',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  }
 }
-const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
 Deno.serve(async (req) => {
+  const cors = corsFor(req)
+  const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } })
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer /, '')
